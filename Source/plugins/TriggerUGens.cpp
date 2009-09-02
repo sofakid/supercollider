@@ -23,6 +23,11 @@
 
 #include <algorithm>            /* for std::min and std::max */
 
+#ifdef NOVA_SIMD
+#include "simd_memory.hpp"
+#include "simd_peakmeter.hpp"
+#endif
+
 static InterfaceTable *ft;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +66,7 @@ struct Poll : public Unit
 	int m_samplesRemain, m_intervalSamples;
 	float m_trig;
 	float m_lastPoll, m_id;
-	char *m_id_string; 
+	char *m_id_string;
 	bool m_mayprint;
 };
 
@@ -362,17 +367,31 @@ void PauseSelfWhenDone_next(PauseSelfWhenDone *unit, int inNumSamples);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef NOVA_SIMD
+void Trig1_next_nova(Trig1 *unit, int inNumSamples);
+void Trig1_next_k_nova(Trig1 *unit, int inNumSamples);
+#endif
 
 void Trig1_Ctor(Trig1 *unit)
 {
 	if (unit->mCalcRate == calc_FullRate && INRATE(0) != calc_FullRate) {
+#ifdef NOVA_SIMD
+		if (!(BUFLENGTH & 15))
+			SETCALC(Trig1_next_k_nova);
+		else
+#endif
 		SETCALC(Trig1_next_k);
 	} else {
+#ifdef NOVA_SIMD
+		if (!(BUFLENGTH & 15))
+			SETCALC(Trig1_next_nova);
+		else
+#endif
 		SETCALC(Trig1_next);
 	}
 	unit->mCounter = 0;
 	unit->m_prevtrig = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -384,11 +403,11 @@ void Trig1_next(Trig1 *unit, int inNumSamples)
 	float sr = unit->mRate->mSampleRate;
 	float prevtrig = unit->m_prevtrig;
 	unsigned long counter = unit->mCounter;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		float zout;
-		if (counter > 0) { 
+		if (counter > 0) {
 			zout = --counter ? 1.f : 0.f;
 		} else {
 			if (curtrig > 0.f && prevtrig <= 0.f) {
@@ -414,10 +433,10 @@ void Trig1_next_k(Trig1 *unit, int inNumSamples)
 	float sr = unit->mRate->mSampleRate;
 	float prevtrig = unit->m_prevtrig;
 	unsigned long counter = unit->mCounter;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float zout;
-		if (counter > 0) { 
+		if (counter > 0) {
 			zout = --counter ? 1.f : 0.f;
 		} else {
 			if (curtrig > 0.f && prevtrig <= 0.f) {
@@ -435,21 +454,124 @@ void Trig1_next_k(Trig1 *unit, int inNumSamples)
 	unit->mCounter = counter;
 }
 
+#ifdef NOVA_SIMD
+void Trig1_next_nova(Trig1 *unit, int inNumSamples)
+{
+	float *out = ZOUT(0);
+	float *trig = ZIN(0);
+	float dur = ZIN0(1);
+	float sr = unit->mRate->mSampleRate;
+	float prevtrig = unit->m_prevtrig;
+	unsigned long counter = unit->mCounter;
+
+	if (counter > inNumSamples)
+	{
+		nova::setvec_simd(OUT(0), 1.f, inNumSamples);
+		counter -= inNumSamples;
+		assert(counter > 0);
+		prevtrig = IN(0)[inNumSamples-1];
+	}
+	else
+	{
+		LOOP(inNumSamples,
+			float curtrig = ZXP(trig);
+			float zout;
+			if (counter > 0) {
+				zout = --counter ? 1.f : 0.f;
+			} else {
+				if (curtrig > 0.f && prevtrig <= 0.f) {
+					counter = (long)(dur * sr + .5f);
+					if (counter < 1) counter = 1;
+					zout = 1.f;
+				} else {
+					zout = 0.f;
+				}
+			}
+			prevtrig = curtrig;
+			ZXP(out) = zout;
+			);
+	}
+	unit->m_prevtrig = prevtrig;
+	unit->mCounter = counter;
+}
+
+
+void Trig1_next_k_nova(Trig1 *unit, int inNumSamples)
+{
+	float *out = ZOUT(0);
+	float curtrig = ZIN0(0);
+	float dur = ZIN0(1);
+	float sr = unit->mRate->mSampleRate;
+	float prevtrig = unit->m_prevtrig;
+	unsigned long counter = unit->mCounter;
+
+	if (counter > inNumSamples)
+	{
+		nova::setvec_simd(OUT(0), 1.f, inNumSamples);
+		counter -= inNumSamples;
+		assert(counter > 0);
+		prevtrig = curtrig;
+	}
+	else if (counter == 0 && (curtrig <= 0.f || prevtrig > 0.f))
+	{
+		nova::zerovec_simd(OUT(0), inNumSamples);
+		prevtrig = curtrig;
+	}
+	else
+	{
+		LOOP(inNumSamples,
+			float zout;
+			if (counter > 0) {
+				zout = --counter ? 1.f : 0.f;
+			} else {
+				if (curtrig > 0.f && prevtrig <= 0.f) {
+					counter = (long)(dur * sr + .5f);
+					if (counter < 1) counter = 1;
+					zout = 1.f;
+				} else {
+					zout = 0.f;
+				}
+			}
+			prevtrig = curtrig;
+			ZXP(out) = zout;
+			);
+	}
+
+	unit->m_prevtrig = prevtrig;
+	unit->mCounter = counter;
+}
+#endif
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+#ifdef NOVA_SIMD
+void Trig_next_nova(Trig *unit, int inNumSamples);
+void Trig_next_k_nova(Trig *unit, int inNumSamples);
+#endif
 
 void Trig_Ctor(Trig *unit)
 {
 	if (unit->mCalcRate == calc_FullRate && INRATE(0) != calc_FullRate) {
+#ifdef NOVA_SIMD
+		if (!(BUFLENGTH & 15))
+			SETCALC(Trig_next_k_nova);
+		else
+#endif
 		SETCALC(Trig_next_k);
 	} else {
+#ifdef NOVA_SIMD
+		if (!(BUFLENGTH & 15))
+			SETCALC(Trig_next_nova);
+		else
+#endif
 		SETCALC(Trig_next);
 	}
 
 	unit->mCounter = 0;
 	unit->m_prevtrig = 0.f;
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -462,11 +584,11 @@ void Trig_next(Trig *unit, int inNumSamples)
 	float prevtrig = unit->m_prevtrig;
 	float level = unit->mLevel;
 	unsigned long counter = unit->mCounter;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		float zout;
-		if (counter > 0) { 
+		if (counter > 0) {
 			zout = --counter ? level : 0.f;
 		} else {
 			if (curtrig > 0.f && prevtrig <= 0.f) {
@@ -495,10 +617,10 @@ void Trig_next_k(Trig *unit, int inNumSamples)
 	float prevtrig = unit->m_prevtrig;
 	float level = unit->mLevel;
 	unsigned long counter = unit->mCounter;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float zout;
-		if (counter > 0) { 
+		if (counter > 0) {
 			zout = --counter ? level : 0.f;
 		} else {
 			if (curtrig > 0.f && prevtrig <= 0.f) {
@@ -518,6 +640,98 @@ void Trig_next_k(Trig *unit, int inNumSamples)
 	unit->mLevel = level;
 }
 
+#ifdef NOVA_SIMD
+void Trig_next_nova(Trig *unit, int inNumSamples)
+{
+	float *out = ZOUT(0);
+	float *trig = ZIN(0);
+	float dur = ZIN0(1);
+	float sr = unit->mRate->mSampleRate;
+	float prevtrig = unit->m_prevtrig;
+	float level = unit->mLevel;
+	unsigned long counter = unit->mCounter;
+
+	if (counter > 0)
+	{
+		nova::setvec_simd(OUT(0), level, inNumSamples);
+		counter -= inNumSamples;
+		assert(counter > 0);
+		prevtrig = IN(0)[inNumSamples-1];
+	}
+	else
+	{
+		LOOP(inNumSamples,
+			float curtrig = ZXP(trig);
+			float zout;
+			if (counter > 0) {
+				zout = --counter ? level : 0.f;
+			} else {
+				if (curtrig > 0.f && prevtrig <= 0.f) {
+					counter = (long)(dur * sr + .5f);
+					if (counter < 1) counter = 1;
+					level = curtrig;
+					zout = level;
+				} else {
+					zout = 0.f;
+				}
+			}
+			prevtrig = curtrig;
+			ZXP(out) = zout;
+			);
+	}
+	unit->m_prevtrig = prevtrig;
+	unit->mCounter = counter;
+	unit->mLevel = level;
+}
+
+void Trig_next_k_nova(Trig *unit, int inNumSamples)
+{
+	float *out = ZOUT(0);
+	float curtrig = ZIN0(0);
+	float dur = ZIN0(1);
+	float sr = unit->mRate->mSampleRate;
+	float prevtrig = unit->m_prevtrig;
+	float level = unit->mLevel;
+	unsigned long counter = unit->mCounter;
+
+	if (counter > inNumSamples)
+	{
+		nova::setvec_simd(OUT(0), level, inNumSamples);
+		counter -= inNumSamples;
+		assert(counter > 0);
+		prevtrig = curtrig;
+	}
+	else if (counter == 0 && (curtrig <= 0.f || prevtrig > 0.f))
+	{
+		nova::zerovec_simd(OUT(0), inNumSamples);
+		prevtrig = curtrig;
+	}
+	else
+	{
+		LOOP(inNumSamples,
+			float zout;
+			if (counter > 0) {
+				zout = --counter ? level : 0.f;
+			} else {
+				if (curtrig > 0.f && prevtrig <= 0.f) {
+					counter = (long)(dur * sr + .5f);
+					if (counter < 1) counter = 1;
+					level = curtrig;
+					zout = level;
+				} else {
+					zout = 0.f;
+				}
+			}
+			prevtrig = curtrig;
+			ZXP(out) = zout;
+			);
+	}
+	unit->m_prevtrig = prevtrig;
+	unit->mCounter = counter;
+	unit->mLevel = level;
+}
+#endif
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void SendTrig_Ctor(SendTrig *unit)
@@ -534,8 +748,8 @@ void SendTrig_next(SendTrig *unit, int inNumSamples)
 {
 	float *trig = ZIN(0);
 	float prevtrig = unit->m_prevtrig;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (curtrig > 0.f && prevtrig <= 0.f) {
 			SendTrigger(&unit->mParent->mNode, (int)ZIN0(1), ZIN0(2));
@@ -550,8 +764,8 @@ void SendTrig_next_aka(SendTrig *unit, int inNumSamples)
 	float *trig = ZIN(0);
         float *value = ZIN(2);
 	float prevtrig = unit->m_prevtrig;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
                 float curval = ZXP(value);
 		if (curtrig > 0.f && prevtrig <= 0.f) {
@@ -568,11 +782,11 @@ void SendTrig_next_aka(SendTrig *unit, int inNumSamples)
 void SendReply_Ctor(SendReply *unit)
 {
 	const int kVarOffset = 3;
-	
+
 	unit->m_prevtrig = 0.f;
 	unit->m_cmdNameSize = IN0(2);
 	unit->m_valueSize = unit->mNumInputs - unit->m_cmdNameSize - kVarOffset;
-	
+
 	// allocations
 	unit->m_cmdName = (char*)RTAlloc(unit->mWorld, (unit->m_cmdNameSize + 1) * sizeof(char));
 	for(int i = 0; i < (int)unit->m_cmdNameSize; i++){
@@ -580,16 +794,16 @@ void SendReply_Ctor(SendReply *unit)
 	};
 	// terminate string
 	unit->m_cmdName[unit->m_cmdNameSize] = 0;
-	
+
 	unit->m_valueOffset = kVarOffset + unit->m_cmdNameSize;
-	unit->m_values = (float*)RTAlloc(unit->mWorld, unit->m_valueSize * sizeof(float));	
-		
+	unit->m_values = (float*)RTAlloc(unit->mWorld, unit->m_valueSize * sizeof(float));
+
 	if (INRATE(kVarOffset) == calc_FullRate) {
 		SETCALC(SendReply_next_aka);
 	} else {
 		SETCALC(SendReply_next);
 	}
-	
+
 }
 
 void SendReply_Dtor(SendReply* unit)
@@ -656,13 +870,13 @@ void Poll_Ctor(Poll* unit)
 		}
 
 	unit->m_trig = IN0(0);
-	unit->m_id = IN0(3); // number of chars in the id string 
-	unit->m_id_string = (char*)RTAlloc(unit->mWorld, ((int)unit->m_id + 1) * sizeof(char));	
+	unit->m_id = IN0(3); // number of chars in the id string
+	unit->m_id_string = (char*)RTAlloc(unit->mWorld, ((int)unit->m_id + 1) * sizeof(char));
 	for(int i = 0; i < (int)unit->m_id; i++){
 		unit->m_id_string[i] = (char)IN0(4+i);
 		};
 	unit->m_id_string[(int)unit->m_id] = '\0';
-	
+
 	unit->m_mayprint = unit->mWorld->mVerbosity >= 0;
 
 	Poll_next_kk(unit, 1);
@@ -734,7 +948,7 @@ void SetResetFF_Ctor(SetResetFF *unit)
 	unit->m_prevtrig = 0.f;
 	unit->m_prevreset = 0.f;
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -747,8 +961,8 @@ void SetResetFF_next_a(SetResetFF *unit, int inNumSamples)
 	float prevtrig = unit->m_prevtrig;
 	float prevreset = unit->m_prevreset;
 	float level = unit->mLevel;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		float curreset = ZXP(reset);
 		if (prevreset <= 0.f && curreset > 0.f) level = 0.f;
@@ -772,8 +986,8 @@ void SetResetFF_next_k(SetResetFF *unit, int inNumSamples)
 	float level = unit->mLevel;
 
 	if (prevreset <= 0.f && curreset > 0.f) level = 0.f;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevtrig <= 0.f && curtrig > 0.f) level = 1.f;
 		ZXP(out) = level;
@@ -793,7 +1007,7 @@ void ToggleFF_Ctor(ToggleFF *unit)
 
 	unit->m_prevtrig = 0.f;
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -804,8 +1018,8 @@ void ToggleFF_next(ToggleFF *unit, int inNumSamples)
 	float *trig = ZIN(0);
 	float prevtrig = unit->m_prevtrig;
 	float level = unit->mLevel;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevtrig <= 0.f && curtrig > 0.f) level = 1.f - level;
 		ZXP(out) = level;
@@ -817,17 +1031,26 @@ void ToggleFF_next(ToggleFF *unit, int inNumSamples)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef NOVA_SIMD
+void Latch_next_ak_nova(Latch *unit, int inNumSamples);
+#endif
+
 void Latch_Ctor(Latch *unit)
 {
 	if (INRATE(1) == calc_FullRate) {
 		SETCALC(Latch_next_aa);
 	} else {
+#ifdef NOVA_SIMD
+		if (!(BUFLENGTH & 15))
+			SETCALC(Latch_next_ak_nova);
+		else
+#endif
 		SETCALC(Latch_next_ak);
 	}
 
 	unit->m_prevtrig = 0.f;
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -836,15 +1059,30 @@ void Latch_next_ak(Latch *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
 	float level = unit->mLevel;
-	
+
 	float curtrig = ZIN0(1);
 	if (unit->m_prevtrig <= 0.f && curtrig > 0.f) level = ZIN0(0);
-	
+
 	LOOP(inNumSamples, ZXP(out) = level; );
 
 	unit->m_prevtrig = curtrig;
 	unit->mLevel = level;
 }
+
+#ifdef NOVA_SIMD
+void Latch_next_ak_nova(Latch *unit, int inNumSamples)
+{
+	float level = unit->mLevel;
+
+	float curtrig = ZIN0(1);
+	if (unit->m_prevtrig <= 0.f && curtrig > 0.f) level = ZIN0(0);
+
+	nova::setvec_simd(OUT(0), level, inNumSamples);
+
+	unit->m_prevtrig = curtrig;
+	unit->mLevel = level;
+}
+#endif
 
 
 void Latch_next_aa(Latch *unit, int inNumSamples)
@@ -854,8 +1092,8 @@ void Latch_next_aa(Latch *unit, int inNumSamples)
 	float *trig = ZIN(1);
 	float prevtrig = unit->m_prevtrig;
 	float level = unit->mLevel;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevtrig <= 0.f && curtrig > 0.f) level = ZXP(in);
 		else { PZ(in); }
@@ -870,17 +1108,25 @@ void Latch_next_aa(Latch *unit, int inNumSamples)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef NOVA_SIMD
+void Gate_next_ak_nova(Gate *unit, int inNumSamples);
+#endif
 
 void Gate_Ctor(Gate *unit)
 {
 	if (INRATE(1) == calc_FullRate) {
 		SETCALC(Gate_next_aa);
 	} else {
+#ifdef NOVA_SIMD
+		if (!(BUFLENGTH & 15))
+			SETCALC(Gate_next_ak_nova);
+		else
+#endif
 		SETCALC(Gate_next_ak);
 	}
 
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -892,21 +1138,38 @@ void Gate_next_ak(Gate *unit, int inNumSamples)
 	float *in = ZIN(0);
 	float *trig = ZIN(1);
 	float level = unit->mLevel;
-	
+
 	float curtrig = ZXP(trig);
 	if (curtrig > 0.f) {
-		LOOP(inNumSamples, 
+		LOOP(inNumSamples,
 			level = ZXP(in);
 			ZXP(out) = level;
 		);
 		unit->mLevel = level;
 	} else {
-		LOOP(inNumSamples, 
+		LOOP(inNumSamples,
 			ZXP(out) = level;
 		);
 	}
 }
 
+#ifdef NOVA_SIMD
+void Gate_next_ak_nova(Gate *unit, int inNumSamples)
+{
+	float *out = ZOUT(0);
+	float *in = ZIN(0);
+	float *trig = ZIN(1);
+	float level = unit->mLevel;
+
+	float curtrig = ZXP(trig);
+	if (curtrig > 0.f) {
+		nova::copyvec_simd(OUT(0), IN(0), inNumSamples);
+		unit->mLevel = IN(0)[inNumSamples-1];
+	} else {
+		nova::setvec_simd(OUT(0), level, inNumSamples);
+	}
+}
+#endif
 
 
 void Gate_next_aa(Gate *unit, int inNumSamples)
@@ -915,8 +1178,8 @@ void Gate_next_aa(Gate *unit, int inNumSamples)
 	float *in = ZIN(0);
 	float *trig = ZIN(1);
 	float level = unit->mLevel;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (curtrig > 0.f) level = ZXP(in);
 		else { PZ(in); }
@@ -933,7 +1196,7 @@ void Schmidt_Ctor(Schmidt *unit)
 	SETCALC(Schmidt_next);
 
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -944,7 +1207,7 @@ void Schmidt_next(Schmidt *unit, int inNumSamples)
 	float lo = ZIN0(1);
 	float hi = ZIN0(2);
 	float level = unit->mLevel;
-	LOOP(inNumSamples, 
+	LOOP(inNumSamples,
 		float zin = ZXP(in);
 		if (level == 1.) {
 			if (zin < lo) level = 0.f;
@@ -965,7 +1228,7 @@ void PulseDivider_Ctor(PulseDivider *unit)
 	unit->m_prevtrig = 0.f;
 	unit->mLevel = 0.f;
 	unit->mCounter = (long)floor(ZIN0(2) + 0.5);
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -977,8 +1240,8 @@ void PulseDivider_next(PulseDivider *unit, int inNumSamples)
 	long div = (long)ZIN0(1);
 	float prevtrig = unit->m_prevtrig;
 	long counter = unit->mCounter;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float z;
 		float curtrig = ZXP(trig);
 		if (prevtrig <= 0.f && curtrig > 0.f) {
@@ -1014,7 +1277,7 @@ void PulseCount_Ctor(PulseCount *unit)
 	unit->m_prevtrig = 0.f;
 	unit->m_prevreset = 0.f;
 	unit->mLevel = 0.f;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -1028,7 +1291,7 @@ void PulseCount_next_a(PulseCount *unit, int inNumSamples)
 	float prevreset = unit->m_prevreset;
 	float level = unit->mLevel;
 
-	LOOP(inNumSamples, 
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		float curreset = ZXP(reset);
 		if (prevreset <= 0.f && curreset > 0.f) level = 0.f;
@@ -1052,8 +1315,8 @@ void PulseCount_next_k(PulseCount *unit, int inNumSamples)
 	float prevtrig = unit->m_prevtrig;
 	float prevreset = unit->m_prevreset;
 	float level = unit->mLevel;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevreset <= 0.f && curreset > 0.f) level = 0.f;
 		else if (prevtrig <= 0.f && curtrig > 0.f) {
@@ -1074,8 +1337,8 @@ void PulseCount_next_0(PulseCount *unit, int inNumSamples)
 	float *trig = ZIN(0);
 	float prevtrig = unit->m_prevtrig;
 	float level = unit->mLevel;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevtrig <= 0.f && curtrig > 0.f) {
 			level += 1.f;
@@ -1105,7 +1368,7 @@ void Stepper_Ctor(Stepper *unit)
 	unit->m_prevtrig = 0.f;
 	unit->m_prevreset = 0.f;
 	unit->mLevel = (float)resetval;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -1123,7 +1386,7 @@ void Stepper_next_aa(Stepper *unit, int inNumSamples)
 	float prevreset = unit->m_prevreset;
 	float level = unit->mLevel;
 
-	LOOP(inNumSamples, 
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		float curreset = ZXP(reset);
 		if (prevreset <= 0.f && curreset > 0.f) {
@@ -1153,7 +1416,7 @@ void Stepper_next_ak(Stepper *unit, int inNumSamples)
 	float prevreset = unit->m_prevreset;
 	float level = unit->mLevel;
 
-	LOOP(inNumSamples, 
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevreset <= 0.f && curreset > 0.f) {
 			level = (float)sc_wrap(resetval, zmin, zmax);
@@ -1179,7 +1442,7 @@ void Stepper_next_a0(Stepper *unit, int inNumSamples)
 	float prevtrig = unit->m_prevtrig;
 	float level = unit->mLevel;
 
-	LOOP(inNumSamples, 
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		if (prevtrig <= 0.f && curtrig > 0.f) {
 			level = (float)sc_wrap((int32)level + step, zmin, zmax);
@@ -1199,7 +1462,7 @@ void TDelay_Ctor(TDelay *unit)
 
 	unit->m_prevtrig = 0.f;
 	unit->mCounter = 0;
-	
+
 	ZOUT0(0) = 0.f;
 }
 
@@ -1212,8 +1475,8 @@ void TDelay_next(TDelay *unit, int inNumSamples)
 	float dur = ZIN0(1);
 	float prevtrig = unit->m_prevtrig;
 	long counter = unit->mCounter;
-	
-	LOOP(inNumSamples, 
+
+	LOOP(inNumSamples,
 		float curtrig = ZXP(trig);
 		float zout;
 		if (counter > 1) {
@@ -1258,7 +1521,7 @@ void ZeroCrossing_next_a(ZeroCrossing *unit, int inNumSamples)
 	float prevfrac = unit->m_prevfrac;
 	float level = unit->mLevel;
 	long counter = unit->mCounter;
-	
+
 	LOOP(inNumSamples,
 		counter++;
 		float curin = ZXP(in);
@@ -1271,11 +1534,11 @@ void ZeroCrossing_next_a(ZeroCrossing *unit, int inNumSamples)
 		ZXP(out) = level;
 		previn = curin;
 	);
-	
+
 	unit->m_previn = previn;
 	unit->m_prevfrac = prevfrac;
 	unit->mLevel = level;
-	unit->mCounter = counter;	
+	unit->mCounter = counter;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1298,7 +1561,7 @@ void Timer_next_a(Timer *unit, int inNumSamples)
 	float prevfrac = unit->m_prevfrac;
 	float level = unit->mLevel;
 	long counter = unit->mCounter;
-	
+
 	LOOP(inNumSamples,
 		counter++;
 		float curin = ZXP(in);
@@ -1311,11 +1574,11 @@ void Timer_next_a(Timer *unit, int inNumSamples)
 		ZXP(out) = level;
 		previn = curin;
 	);
-	
+
 	unit->m_previn = previn;
 	unit->m_prevfrac = prevfrac;
 	unit->mLevel = level;
-	unit->mCounter = counter;	
+	unit->mCounter = counter;
 }
 
 
@@ -1355,12 +1618,12 @@ void Sweep_next_0k(Sweep *unit, int inNumSamples)
 	float *out = ZOUT(0);
 	double rate = ZIN0(1) * SAMPLEDUR;
 	double level = unit->mLevel;
-	
+
 	LOOP(inNumSamples,
 		level += rate;
 		ZXP(out) = level;
 	);
-	
+
 	unit->mLevel = level;
 }
 
@@ -1370,13 +1633,13 @@ void Sweep_next_0a(Sweep *unit, int inNumSamples)
 	float *rate = ZIN(1);
 	double level = unit->mLevel;
 	float sampledur = SAMPLEDUR;
-	
+
 	LOOP(inNumSamples,
 		float zrate = ZXP(rate) * sampledur;
 		level += zrate;
 		ZXP(out) = level;
 	);
-	
+
 	unit->mLevel = level;
 }
 
@@ -1392,12 +1655,12 @@ void Sweep_next_kk(Sweep *unit, int inNumSamples)
 		float frac = -previn/(curin-previn);
 		level = frac * rate;
 	}
-	
+
 	LOOP(inNumSamples,
 		level += rate;
 		ZXP(out) = level;
 	);
-	
+
 	unit->m_previn = curin;
 	unit->mLevel = level;
 }
@@ -1415,13 +1678,13 @@ void Sweep_next_ka(Sweep *unit, int inNumSamples)
 		float frac = -previn/(curin-previn);
 		level = frac * rate[ZOFF] * sampledur;
 	}
-	
+
 	LOOP(inNumSamples,
 		float zrate = ZXP(rate) * sampledur;
 		level += zrate;
 		ZXP(out) = level;
 	);
-	
+
 	unit->m_previn = curin;
 	unit->mLevel = level;
 }
@@ -1433,7 +1696,7 @@ void Sweep_next_ak(Sweep *unit, int inNumSamples)
 	double rate = ZIN0(1) * SAMPLEDUR;
 	float previn = unit->m_previn;
 	double level = unit->mLevel;
-	
+
 	LOOP(inNumSamples,
 		float curin = ZXP(in);
 		if (previn <= 0.f && curin > 0.f) {
@@ -1445,7 +1708,7 @@ void Sweep_next_ak(Sweep *unit, int inNumSamples)
 		ZXP(out) = level;
 		previn = curin;
 	);
-	
+
 	unit->m_previn = previn;
 	unit->mLevel = level;
 }
@@ -1458,7 +1721,7 @@ void Sweep_next_aa(Sweep *unit, int inNumSamples)
 	float previn = unit->m_previn;
 	double level = unit->mLevel;
 	float sampledur = SAMPLEDUR;
-	
+
 	LOOP(inNumSamples,
 		float curin = ZXP(in);
 		float zrate = ZXP(rate) * sampledur;
@@ -1471,7 +1734,7 @@ void Sweep_next_aa(Sweep *unit, int inNumSamples)
 		ZXP(out) = level;
 		previn = curin;
 	);
-	
+
 	unit->m_previn = previn;
 	unit->mLevel = level;
 }
@@ -1501,16 +1764,16 @@ void Phasor_Ctor(Phasor *unit)
 void Phasor_next_kk(Phasor *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
-	
+
 	float in        = ZIN0(0);
 	double rate      = ZIN0(1);
 	double start     = ZIN0(2);
 	double end       = ZIN0(3);
 	float resetPos  = ZIN0(4);
-	
+
 	float previn = unit->m_previn;
 	double level  = unit->mLevel;
-	
+
 	if (previn <= 0.f && in > 0.f) {
 		level = resetPos;
 	}
@@ -1519,7 +1782,7 @@ void Phasor_next_kk(Phasor *unit, int inNumSamples)
 		ZXP(out) = level;
 		level += rate;
 	);
-	
+
 	unit->m_previn = in;
 	unit->mLevel = level;
 }
@@ -1527,29 +1790,29 @@ void Phasor_next_kk(Phasor *unit, int inNumSamples)
 void Phasor_next_ak(Phasor *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
-	
+
 	float *in       = ZIN(0);
 	double rate      = ZIN0(1);
 	double start     = ZIN0(2);
 	double end       = ZIN0(3);
 	float resetPos  = ZIN0(4);
-	
+
 	float previn = unit->m_previn;
 	double level  = unit->mLevel;
-	
+
 	LOOP(inNumSamples,
 		float curin = ZXP(in);
 		if (previn <= 0.f && curin > 0.f) {
 			float frac = 1.f - previn/(curin-previn);
 			level = resetPos + frac * rate;
-		} 
+		}
 		ZXP(out) = level;
 		level += rate;
 		level = sc_wrap(level, start, end);
-		
+
 		previn = curin;
 	);
-	
+
 	unit->m_previn = previn;
 	unit->mLevel = level;
 }
@@ -1562,10 +1825,10 @@ void Phasor_next_aa(Phasor *unit, int inNumSamples)
 	double start     = ZIN0(2);
 	double end       = ZIN0(3);
 	float resetPos  = ZIN0(4);
-	
+
 	float previn = unit->m_previn;
 	double level = unit->mLevel;
-	
+
 	LOOP(inNumSamples,
 		float curin = ZXP(in);
 		double zrate = ZXP(rate);
@@ -1578,7 +1841,7 @@ void Phasor_next_aa(Phasor *unit, int inNumSamples)
 		level = sc_wrap(level, start, end);
 		previn = curin;
 	);
-	
+
 	unit->m_previn = previn;
 	unit->mLevel = level;
 }
@@ -1588,8 +1851,11 @@ void Phasor_next_aa(Phasor *unit, int inNumSamples)
 
 void Peak_next_ak_unroll(Peak *unit, int inNumSamples);
 void Peak_next_ai_unroll(Peak *unit, int inNumSamples);
-void Peak_next_ak_k_unroll(Peak *unit, int inNumSamples);
-void Peak_next_ai_k_unroll(Peak *unit, int inNumSamples);
+
+#ifdef NOVA_SIMD
+void Peak_next_ak_k_nova(Peak *unit, int inNumSamples);
+void Peak_next_ai_k_nova(Peak *unit, int inNumSamples);
+#endif
 
 void Peak_Ctor(Peak *unit)
 {
@@ -1599,26 +1865,34 @@ void Peak_Ctor(Peak *unit)
 		if (INRATE(1) == calc_FullRate) {
 			SETCALC(Peak_next_aa_k);
 		} else if (INRATE(1) == calc_ScalarRate) {
+#ifdef NOVA_SIMD
 			if (INBUFLENGTH(0) & 7)
 				SETCALC(Peak_next_ai_k);
 			else
-				SETCALC(Peak_next_ai_k_unroll);
-		} else {
+				SETCALC(Peak_next_ai_k_nova);
+#else
+			SETCALC(Peak_next_ai_k);
+#endif
+        } else {
+#ifdef NOVA_SIMD
 			if (INBUFLENGTH(0) & 7)
 				SETCALC(Peak_next_ak_k);
 			else
-				SETCALC(Peak_next_ak_k_unroll);
+				SETCALC(Peak_next_ak_k_nova);
+#else
+				SETCALC(Peak_next_ak_k);
+#endif
 		}
 	} else {
 		if (INRATE(1) == calc_FullRate) {
 			SETCALC(Peak_next_aa);
 		} else if (INRATE(1) == calc_ScalarRate) {
-			if (BUFLENGTH & 7)
+			if (BUFLENGTH & 15)
 				SETCALC(Peak_next_ai);
 			else
 				SETCALC(Peak_next_ai_unroll);
 		} else {
-			if (BUFLENGTH & 7)
+			if (BUFLENGTH & 15)
 				SETCALC(Peak_next_ak);
 			else
 				SETCALC(Peak_next_ak_unroll);
@@ -1818,70 +2092,34 @@ void Peak_next_aa_k(Peak *unit, int inNumSamples)
 	unit->mLevel = level;
 }
 
-void Peak_next_ak_k_unroll(Peak *unit, int inNumSamples)
+#ifdef NOVA_SIMD
+void Peak_next_ak_k_nova(Peak *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
-	float *in = ZIN(0);
+	float *in = IN(0);
 	float curtrig = ZIN0(1);
 	float level = unit->mLevel;
 	float inlevel;
 	inNumSamples = INBUFLENGTH(0);
-	LOOP(inNumSamples/8,
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-	);
+	inlevel = nova::peak_vec_simd(in, &level, inNumSamples);
 	ZXP(out) = level;
 	if (unit->m_prevtrig <= 0.f && curtrig > 0.f) level = inlevel;
 	unit->m_prevtrig = curtrig;
 	unit->mLevel = level;
 }
 
-void Peak_next_ai_k_unroll(Peak *unit, int inNumSamples)
+void Peak_next_ai_k_nova(Peak *unit, int inNumSamples)
 {
 	float *out = ZOUT(0);
 	float *in = ZIN(0);
 	float level = unit->mLevel;
 	float inlevel;
 	inNumSamples = INBUFLENGTH(0);
-	LOOP(inNumSamples/8,
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-		inlevel = std::abs(ZXP(in));
-		level = std::max(inlevel, level);
-	);
+	inlevel = nova::peak_vec_simd(in, &level, inNumSamples);
 	ZXP(out) = level;
 	unit->mLevel = level;
 }
+#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2027,7 +2265,7 @@ void PeakFollower_Ctor(PeakFollower *unit)
 	} else {
 		SETCALC(PeakFollower_next);
 	}
-	
+
 	unit->mDecay = ZIN0(1);
 	ZOUT0(0) = unit->mLevel = ZIN0(0);
 }
@@ -2038,27 +2276,27 @@ void PeakFollower_next(PeakFollower *unit, int inNumSamples)
 	float *in = ZIN(0);
 	float decay = ZIN0(1);
 	float level = unit->mLevel;
-	
-	
+
+
 	if(decay == unit->mDecay) {
 		LOOP(inNumSamples,
 			float inlevel = std::abs(ZXP(in));
-			if (inlevel >= level) { 
-				level = inlevel; 
-			} else { 
-				level = inlevel + decay * (level - inlevel); 
+			if (inlevel >= level) {
+				level = inlevel;
+			} else {
+				level = inlevel + decay * (level - inlevel);
 			}
 			ZXP(out) = level;
 		);
-		
+
 	} else {
-		
+
 		float decay_slope = CALCSLOPE(decay, unit->mDecay);
 		if (decay >= 0.f && unit->mDecay >= 0.f) {
-			LOOP(inNumSamples, 
+			LOOP(inNumSamples,
 				float inlevel = std::abs(ZXP(in));
-				if (inlevel >= level) { 
-					level = inlevel; 
+				if (inlevel >= level) {
+					level = inlevel;
 				} else {
 					level = inlevel + decay * (level - inlevel);
 					decay += decay_slope;
@@ -2077,10 +2315,10 @@ void PeakFollower_next(PeakFollower *unit, int inNumSamples)
 				ZXP(out) = level;
 			);
 		} else {
-			LOOP(inNumSamples, 
+			LOOP(inNumSamples,
 				float inlevel = std::abs(ZXP(in));
-				if (inlevel >= level) { 
-					level = inlevel; 
+				if (inlevel >= level) {
+					level = inlevel;
 				} else {
 					level = (1.f - std::abs(decay)) * inlevel + decay * level;
 					decay += decay_slope;
@@ -2089,7 +2327,7 @@ void PeakFollower_next(PeakFollower *unit, int inNumSamples)
 			);
 		};
 	}
-		
+
 	unit->mLevel = level;
 	unit->mDecay = decay;
 }
@@ -2101,17 +2339,17 @@ void PeakFollower_next_ai(PeakFollower *unit, int inNumSamples)
 	float *in = ZIN(0);
 	float decay = ZIN0(1);
 	float level = unit->mLevel;
-	
+
 		LOOP(inNumSamples,
 			float inlevel = std::abs(ZXP(in));
-			if (inlevel >= level) { 
-				level = inlevel; 
-			} else { 
-				level = inlevel + decay * (level - inlevel); 
+			if (inlevel >= level) {
+				level = inlevel;
+			} else {
+				level = inlevel + decay * (level - inlevel);
 			}
 			ZXP(out) = level;
 		);
-	
+
 	unit->mLevel = level;
 }
 
@@ -2345,7 +2583,7 @@ void LastValue_Ctor(LastValue *unit)
 		} else {
 			SETCALC(LastValue_next_kk);
 		}
-	
+
 	unit->mPrev = ZIN0(0);
 	unit->mCurr = ZIN0(0);
 	LastValue_next_kk(unit, 1);
@@ -2357,13 +2595,13 @@ void LastValue_next_kk(LastValue *unit, int inNumSamples)
 	float inval = ZIN0(0);
 	float delta = ZIN0(1);
 	float diff = std::abs(inval - unit->mCurr);
-	if(diff >= delta) { 
-		unit->mPrev = unit->mCurr; 
+	if(diff >= delta) {
+		unit->mPrev = unit->mCurr;
 		unit->mCurr = inval;
 	}
 	float level = unit->mPrev;
 	LOOP(inNumSamples, ZXP(out) = level; );
-	
+
 }
 
 
@@ -2374,12 +2612,12 @@ void LastValue_next_ak(LastValue *unit, int inNumSamples)
 	float delta = ZIN0(1);
 	float prev = unit->mPrev;
 	float curr = unit->mCurr;
-	
+
 	LOOP(inNumSamples,
 		float inval = ZXP(in);
 		float diff = std::abs(inval - curr);
-		if(diff >= delta) { 
-				prev = curr; 
+		if(diff >= delta) {
+				prev = curr;
 				curr = inval;
 		}
 		ZXP(out) = prev
@@ -2399,7 +2637,7 @@ void Done_Ctor(Done *unit)
 	SETCALC(Done_next);
 
 	unit->m_src = unit->mInput[0]->mFromUnit;
-	
+
 	Done_next(unit, 1);
 }
 
@@ -2418,7 +2656,7 @@ void Done_next(Done *unit, int inNumSamples)
 void FreeSelf_Ctor(FreeSelf *unit)
 {
 	SETCALC(FreeSelf_next);
-	unit->m_prevtrig = 0.f;	
+	unit->m_prevtrig = 0.f;
 	FreeSelf_next(unit, 1);
 }
 
@@ -2436,7 +2674,7 @@ void FreeSelf_next(FreeSelf *unit, int inNumSamples)
 
 void PauseSelf_Ctor(PauseSelf *unit)
 {
-	SETCALC(PauseSelf_next);		
+	SETCALC(PauseSelf_next);
 	unit->m_prevtrig = 0.f;
 	PauseSelf_next(unit, 1);
 }
@@ -2458,7 +2696,7 @@ void Pause_Ctor(Pause *unit)
 	SETCALC(Pause_next);
 
 	unit->m_state = 1;
-	
+
 	ZOUT0(0) = ZIN0(0);
 }
 
@@ -2485,7 +2723,7 @@ void Free_Ctor(Free *unit)
 	SETCALC(Free_next);
 
 	unit->m_prevtrig = 0.f;
-	
+
 	ZOUT0(0) = ZIN0(0);
 }
 
@@ -2508,9 +2746,9 @@ void Free_next(Free *unit, int inNumSamples)
 
 void FreeSelfWhenDone_Ctor(FreeSelfWhenDone *unit)
 {
-	
+
 	unit->m_src = unit->mInput[0]->mFromUnit;
-	
+
 	if (unit->m_src) {
 		SETCALC(FreeSelfWhenDone_next);
 		FreeSelfWhenDone_next(unit, 1);
@@ -2537,9 +2775,9 @@ void FreeSelfWhenDone_next(FreeSelfWhenDone *unit, int inNumSamples)
 
 void PauseSelfWhenDone_Ctor(PauseSelfWhenDone *unit)
 {
-	
+
 	unit->m_src = unit->mInput[0]->mFromUnit;
-	
+
 	if (unit->m_src) {
 		SETCALC(PauseSelfWhenDone_next);
 		PauseSelfWhenDone_next(unit, 1);
