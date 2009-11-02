@@ -1718,6 +1718,7 @@
 				PREBINDING = NO;
 				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 				SYMROOT = build/plugins;
+				USER_HEADER_SEARCH_PATHS = "./nova-simd";
 				ZERO_LINK = NO;
 			};
 			name = Development;
@@ -1750,6 +1751,7 @@
 				PREBINDING = NO;
 				SDKROOT = /Developer/SDKs/MacOSX10.4u.sdk;
 				SYMROOT = build/plugins;
+				USER_HEADER_SEARCH_PATHS = "./nova-simd";
 			};
 			name = Deployment;
 		};
