@@ -221,7 +221,11 @@ int doSpecialUnaryArithMsg(VMGlobals *g, int numArgsPushed)
 				{
 					double val = slotRawFloat(a);
 					if (val == std::numeric_limits<double>::infinity())
+#ifdef SC_WIN32
+						SetInt(a, (std::numeric_limits<int>::max)());
+#else
 						SetInt(a, std::numeric_limits<int>::max());
+#endif
 					else
 						SetInt(a, (int)val);
 					break;

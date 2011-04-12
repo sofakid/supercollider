@@ -32,7 +32,11 @@
 template <typename T, typename U, typename V>
 inline T sc_clip(T x, U lo, V hi)
 {
-    return std::max(std::min(x, (T)hi), (T)lo);
+#ifdef SC_WIN32
+	return (std::max)((std::min)(x, (T)hi), (T)lo);
+#else
+	return std::max(std::min(x, (T)hi), (T)lo);
+#endif
 }
 
 #endif

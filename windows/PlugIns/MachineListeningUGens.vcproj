@@ -79,7 +79,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ProjectDir)..\..\build\plugins\"
+			OutputDirectory="$(ProjectDir)..\..\common\build\plugins\"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			BuildLogFile="$(IntDir)\BuildLog-$(ProjectName).htm"
@@ -101,7 +101,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\Source\plugins&quot;;&quot;$(ProjectDir)..\compat_stuff&quot;;&quot;$(ProjectDir)..\..\headers\plugin_interface&quot;;&quot;$(ProjectDir)..\..\common\include\libsndfile&quot;;&quot;$(ProjectDir)..\..\headers\common&quot;;&quot;$(ProjectDir)..\..\headers\server&quot;;&quot;$(ProjectDir)..\..\..\pthread-win32&quot;;&quot;$(ProjectDir)..\..\..\fftw-3.2\api&quot;"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\common\Source\plugins&quot;;&quot;$(ProjectDir)..\compat_stuff&quot;;&quot;$(ProjectDir)..\..\common\Headers\plugin_interface&quot;;&quot;$(ProjectDir)..\..\common\include\libsndfile&quot;;&quot;$(ProjectDir)..\..\common\Headers\common&quot;;&quot;$(ProjectDir)..\..\common\Headers\server&quot;;&quot;$(ProjectDir)..\..\..\pthread-win32&quot;;&quot;$(ProjectDir)..\..\..\fftw&quot;"
 				PreprocessorDefinitions="WIN32;SC_WIN32;NDEBUG;_WINDOWS;_USRDLL;DELAYUGENS_EXPORTS"
 			/>
 			<Tool
@@ -153,11 +153,11 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
-				RelativePath="..\..\Source\plugins\BeatTrack.cpp"
+				RelativePath="..\..\common\Source\plugins\BeatTrack.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\BeatTrack2.cpp"
+				RelativePath="..\..\common\Source\plugins\BeatTrack2.cpp"
 				>
 			</File>
 			<File
@@ -165,35 +165,35 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\KeyTrack.cpp"
+				RelativePath="..\..\common\Source\plugins\KeyTrack.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\Loudness.cpp"
+				RelativePath="..\..\common\Source\plugins\Loudness.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\MFCC.cpp"
+				RelativePath="..\..\common\Source\plugins\MFCC.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\ML.cpp"
+				RelativePath="..\..\common\Source\plugins\ML.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\ML_SpecStats.cpp"
+				RelativePath="..\..\common\Source\plugins\ML_SpecStats.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\Onsets.cpp"
+				RelativePath="..\..\common\Source\plugins\Onsets.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\onsetsds.c"
+				RelativePath="..\..\common\Source\plugins\onsetsds.c"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\SCComplex.cpp"
+				RelativePath="..\..\common\Source\plugins\SCComplex.cpp"
 				>
 			</File>
 		</Filter>

@@ -77,9 +77,9 @@ using std::atan2;
 using std::sinh;
 using std::cosh;
 using std::tanh;
-using std::asinh;
-using std::acosh;
-using std::atanh;
+//using std::asinh;
+//using std::acosh;
+//using std::atanh;
 
 
 #endif

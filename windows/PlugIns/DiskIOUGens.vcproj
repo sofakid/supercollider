@@ -4,6 +4,7 @@
 	Version="9.00"
 	Name="DiskIOUGens"
 	ProjectGUID="{A5CCA509-2D72-41E0-8E31-7C90449B7216}"
+	RootNamespace="DiskIOUGens"
 	Keyword="Win32Proj"
 	TargetFrameworkVersion="131072"
 	>
@@ -97,7 +98,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ProjectDir)..\..\build\plugins\"
+			OutputDirectory="$(ProjectDir)..\..\common\build\plugins\"
 			IntermediateDirectory="PlugIns_Release_Intermediate"
 			ConfigurationType="2"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -121,8 +122,8 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\headers\plugin_interface&quot;;&quot;$(ProjectDir)..\..\common\include\libsndfile&quot;;&quot;$(ProjectDir)..\..\headers\common&quot;;&quot;$(ProjectDir)..\..\headers\server&quot;;&quot;$(ProjectDir)..\..\..\pthread-win32&quot;"
-				PreprocessorDefinitions="WIN32;SC_WIN32;NDEBUG;_WINDOWS;_USRDLL;DISKIOUGENS_EXPORTS"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\common\Headers\plugin_interface&quot;;&quot;$(ProjectDir)..\..\common\include\libsndfile&quot;;&quot;$(ProjectDir)..\..\common\Headers\common&quot;;&quot;$(ProjectDir)..\..\common\Headers\server&quot;;&quot;$(ProjectDir)..\..\..\pthread-win32&quot;"
+				PreprocessorDefinitions="WIN32;SC_WIN32;NDEBUG;_WINDOWS;_USRDLL;DISKIOUGENS_EXPORTS;PTW32_BUILD"
 				RuntimeLibrary="0"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
@@ -141,7 +142,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="wsock32.lib ..\..\libsndfile\libsndfile-1.lib"
+				AdditionalDependencies="wsock32.lib ..\lib\libsndfile.lib"
 				OutputFile="$(OutDir)/$(ProjectName).scx"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -185,7 +186,7 @@
 			UniqueIdentifier="{D69A8930-8815-4CC7-B325-15296B5B2A25}"
 			>
 			<File
-				RelativePath="..\..\..\SuperCollider3\source\plugins\DiskIO_UGens.cpp"
+				RelativePath="..\..\common\Source\plugins\DiskIO_UGens.cpp"
 				>
 			</File>
 			<File
@@ -193,7 +194,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\..\SuperCollider3\source\server\SC_SyncCondition.cpp"
+				RelativePath="..\..\common\Source\server\SC_SyncCondition.cpp"
 				>
 			</File>
 		</Filter>

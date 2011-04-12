@@ -97,7 +97,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ProjectDir)..\build"
+			OutputDirectory="$(ProjectDir)..\common\build"
 			IntermediateDirectory="scsynth_Release_Intermediate"
 			ConfigurationType="1"
 			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
@@ -123,7 +123,7 @@
 				Name="VCCLCompilerTool"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="..\headers\plugin_interface;..\headers\server;..\headers\common;..\common\include\libsndfile;&quot;..\..\pthread-win32&quot;;..\..\portaudio\src\common;..\..\portaudio\include;&quot;..\..\asio-sdk\common&quot;;&quot;..\..\asio-sdk\host&quot;;&quot;..\..\asio-sdk\host\pc&quot;"
+				AdditionalIncludeDirectories="..\common\Headers\plugin_interface;..\common\Headers\server;..\common\Headers\common;..\common\include\libsndfile;&quot;..\..\pthread-win32&quot;;..\..\portaudio\src\common;..\..\portaudio\include;&quot;..\..\asio-sdk\common&quot;;&quot;..\..\asio-sdk\host&quot;;&quot;..\..\asio-sdk\host\pc&quot;;..\..\fftw"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE;SC_WIN32;NOMINMAX;PTW32_BUILD;SC_WIN32_STATIC_PTHREADS;PA_NO_DS;_CRT_SECURE_NO_WARNINGS"
 				RuntimeLibrary="2"
 				UsePrecompiledHeader="0"
@@ -142,7 +142,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="msvcrt.lib ws2_32.lib user32.lib ole32.lib Advapi32.lib ..\libsndfile\libsndfile-1.lib"
+				AdditionalDependencies="msvcrt.lib ws2_32.lib user32.lib ole32.lib Advapi32.lib lib\libsndfile.lib ..\..\fftw\libfftw3f-3.lib"
 				OutputFile="$(OutDir)/scsynth.exe"
 				LinkIncremental="1"
 				GenerateDebugInformation="true"
@@ -185,102 +185,6 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<Filter
-				Name="server"
-				>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\Samp.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_BufGen.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Carbon.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Complex.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_ComPort.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_CoreAudio.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Dimension.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Errors.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Graph.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_GraphDef.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Group.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Lib.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Lib_Cintf.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_MiscCmds.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Node.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Rate.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_SequencedCommand.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Str4.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_SyncCondition.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_Unit.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_UnitDef.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\SC_World.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\server\scsynth_main.cpp"
-					>
-				</File>
-			</Filter>
-			<Filter
 				Name="pthread"
 				>
 				<File
@@ -309,31 +213,7 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="common"
-				>
-				<File
-					RelativePath="..\..\SuperCollider3\source\common\SC_AllocPool.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\common\SC_DirUtils.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\common\SC_Sem.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\source\common\SC_StringParser.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\common\SC_Win32Utils.cpp"
-					>
-				</File>
-			</Filter>
-			<Filter
-				Name="pa-v19-20071207"
+				Name="portaudio"
 				>
 				<Filter
 					Name="include"
@@ -948,133 +828,95 @@
 					</Filter>
 				</Filter>
 			</Filter>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
 			<Filter
 				Name="server"
 				>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\HashTable.h"
+					RelativePath="..\common\Source\server\Samp.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\IntFifo.h"
+					RelativePath="..\common\Source\server\SC_BufGen.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\MsgFifo.h"
+					RelativePath="..\common\Source\server\SC_Carbon.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\OSC_Packet.h"
+					RelativePath="..\common\Source\server\SC_Complex.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\PriorityQueue.h"
+					RelativePath="..\common\Source\server\SC_ComPort.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\ReadWriteMacros.h"
+					RelativePath="..\common\Source\server\SC_CoreAudio.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\Rendezvous.h"
+					RelativePath="..\common\Source\server\SC_Errors.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Complex.h"
+					RelativePath="..\common\Source\server\SC_Graph.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_ComPort.h"
+					RelativePath="..\common\Source\server\SC_GraphDef.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_CoreAudio.h"
+					RelativePath="..\common\Source\server\SC_Group.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Errors.h"
+					RelativePath="..\common\Source\server\SC_Lib.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_GraphDef.h"
+					RelativePath="..\common\Source\server\SC_Lib_Cintf.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Group.h"
+					RelativePath="..\common\Source\server\SC_MiscCmds.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_HiddenWorld.h"
+					RelativePath="..\common\Source\server\SC_Node.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Lib.h"
+					RelativePath="..\common\Source\server\SC_Rate.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Lib_Cintf.h"
+					RelativePath="..\common\Source\server\SC_SequencedCommand.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_List.h"
+					RelativePath="..\common\Source\server\SC_Str4.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Lock.h"
+					RelativePath="..\common\Source\server\SC_SyncCondition.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Prototypes.h"
+					RelativePath="..\common\Source\server\SC_Unit.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Reply.h"
+					RelativePath="..\common\Source\server\SC_UnitDef.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Samp.h"
+					RelativePath="..\common\Source\server\SC_World.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_SequencedCommand.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_Str4.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_SyncCondition.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_SynthDef.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_UnitDef.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_UnitSpec.h"
-					>
-				</File>
-				<File
-					RelativePath="..\..\SuperCollider3\headers\server\SC_WireSpec.h"
-					>
-				</File>
-				<File
-					RelativePath="..\headers\plugin_interface\SC_World.h"
-					>
-				</File>
-				<File
-					RelativePath="..\headers\plugin_interface\SC_WorldOptions.h"
+					RelativePath="..\common\Source\server\scsynth_main.cpp"
 					>
 				</File>
 			</Filter>
@@ -1082,7 +924,165 @@
 				Name="common"
 				>
 				<File
-					RelativePath="..\headers\common\SC_Win32Utils.h"
+					RelativePath="..\common\Source\common\fftlib.c"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_AllocPool.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_DirUtils.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_fftlib.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_Sem.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_StringBuffer.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_StringParser.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Source\common\SC_Win32Utils.cpp"
+					>
+				</File>
+			</Filter>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			Filter="h;hpp;hxx;hm;inl;inc;xsd"
+			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
+			>
+			<Filter
+				Name="common"
+				>
+				<File
+					RelativePath="..\common\Headers\common\SC_Win32Utils.h"
+					>
+				</File>
+			</Filter>
+			<Filter
+				Name="server"
+				>
+				<File
+					RelativePath="..\common\Headers\server\HashTable.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\MsgFifo.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\OSC_Packet.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\PriorityQueue.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\ReadWriteMacros.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\Rendezvous.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Complex.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_ComPort.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_CoreAudio.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Errors.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_GraphDef.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Group.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_HiddenWorld.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Lib.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Lib_Cintf.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_List.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Lock.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Prototypes.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Samp.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_SequencedCommand.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_Str4.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_SyncCondition.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_SynthDef.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_UnitDef.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_UnitSpec.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\server\SC_WireSpec.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\plugin_interface\SC_World.h"
+					>
+				</File>
+				<File
+					RelativePath="..\common\Headers\plugin_interface\SC_WorldOptions.h"
 					>
 				</File>
 			</Filter>

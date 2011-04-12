@@ -29,8 +29,8 @@
 		<Directory Id="ApplicationProgramsFolder" Name="SuperCollider 3" />
 	</Directory>
 
-	<Merge Id="VCRedist" SourceFile="/Program Files/Common Files/Merge Modules/Microsoft_VC90_CRT_x86.msm" DiskId="1" Language="0"/>
-	<Merge Id="VCRedistPolicy" SourceFile="/Program Files/Common Files/Merge Modules/policy_9_0_Microsoft_VC90_CRT_x86.msm" DiskId="1" Language="0"/>
+	<Merge Id="VCRedist" SourceFile="/Program Files (x86)/Common Files/Merge Modules/Microsoft_VC90_CRT_x86.msm" DiskId="1" Language="0"/>
+	<Merge Id="VCRedistPolicy" SourceFile="/Program Files (x86)/Common Files/Merge Modules/policy_9_0_Microsoft_VC90_CRT_x86.msm" DiskId="1" Language="0"/>
 </Directory>
 
 <!-- Now the files to install -->
@@ -48,7 +48,7 @@
 		<File Id="scsynthDll" Name="scsynth.dll" Source="../common/build/scsynth.dll" DiskId="1"></File>
 		<File Id="portaudioDll" Name="portaudio_x86.dll" Source="../common/build/portaudio_x86.dll" DiskId="1"></File>
 -->
-		<File Id="libsndfile" Name="libsndfile-1.dll" Source="../common/build/libsndfile-1.dll" DiskId="1"></File>
+		<File Id="libsndfile" Name="libsndfile.dll" Source="../common/build/libsndfile.dll" DiskId="1"></File>
 		<File Id="keywordslist" Name="keywords.list" Source="keywords.list" DiskId="1"></File>
 		<File Id="psycolliderscript" Name="Psycollider.py" Source="../common/Psycollider/Psycollider/Psycollider.py" DiskId="1"></File>
 		<File Id="scstartupfile" Name="startup.sc" Source="startup.sc" DiskId="1"></File>

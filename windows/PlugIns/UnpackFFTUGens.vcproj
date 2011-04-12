@@ -79,7 +79,7 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(ProjectDir)..\..\build\plugins\"
+			OutputDirectory="$(ProjectDir)..\..\common\build\plugins\"
 			IntermediateDirectory="$(ConfigurationName)"
 			ConfigurationType="2"
 			BuildLogFile="$(IntDir)\BuildLog-$(ProjectName).htm"
@@ -101,7 +101,7 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\headers\plugin_interface&quot;;&quot;$(ProjectDir)..\..\common\include\libsndfile&quot;;&quot;$(ProjectDir)..\..\headers\common&quot;;&quot;$(ProjectDir)..\..\headers\server&quot;;&quot;$(ProjectDir)..\..\..\pthread-win32&quot;;&quot;$(ProjectDir)..\..\..\fftw-3.2\api&quot;"
+				AdditionalIncludeDirectories="&quot;$(ProjectDir)..\..\common\Headers\plugin_interface&quot;;&quot;$(ProjectDir)..\..\common\include\libsndfile&quot;;&quot;$(ProjectDir)..\..\common\Headers\common&quot;;&quot;$(ProjectDir)..\..\common\Headers\server&quot;;&quot;$(ProjectDir)..\..\..\pthread-win32&quot;;&quot;$(ProjectDir)..\..\..\fftw&quot;"
 				PreprocessorDefinitions="WIN32;SC_WIN32;NDEBUG;_WINDOWS;_USRDLL;DELAYUGENS_EXPORTS"
 			/>
 			<Tool
@@ -157,11 +157,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\SCComplex.cpp"
+				RelativePath="..\..\common\Source\plugins\SCComplex.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Source\plugins\UnpackFFTUGens.cpp"
+				RelativePath="..\..\common\Source\plugins\UnpackFFTUGens.cpp"
 				>
 			</File>
 		</Filter>
