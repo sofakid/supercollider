@@ -153,14 +153,27 @@ leave:
 	NRTUnlock(mWorld);
 }
 
-MsgFifoNoFree<DiskIOMsg, 256> gDiskFifo;
-SC_SyncCondition gDiskFifoHasData;
+
+#ifdef SC_WIN32
+	SC_SyncCondition* pgDiskFifoHasData;
+	MsgFifoNoFree<DiskIOMsg, 256>* pgDiskFifo;
+#else
+	SC_SyncCondition gDiskFifoHasData;
+	MsgFifoNoFree<DiskIOMsg, 256> gDiskFifo;
+#endif
+
 
 void* disk_io_thread_func(void* arg)
 {
 	while (true) {
+#ifdef SC_WIN32
+		pgDiskFifoHasData->WaitEach();
+		pgDiskFifo->Perform();
+#else
 		gDiskFifoHasData.WaitEach();
 		gDiskFifo.Perform();
+#endif
+		
 	}
 	return 0;
 }
@@ -247,9 +260,14 @@ sendMessage:
 			msg.mBufNum = (int)fbufnum;
 			msg.mPos = bufFrames2 - unit->m_framepos;
 			msg.mFrames = bufFrames2;
-			msg.mChannels = bufChannels;
+			msg.mChannels = bufChannels;		
+#ifdef SC_WIN32
+			pgDiskFifo->Write(msg);
+			pgDiskFifoHasData->Signal();
+#else
 			gDiskFifo.Write(msg);
 			gDiskFifoHasData.Signal();
+#endif
 		} else {
 			SndBuf *bufr = World_GetNRTBuf(unit->mWorld, (int) fbufnum);
 			uint32 mPos = bufFrames2 - unit->m_framepos;
@@ -351,8 +369,13 @@ sendMessage:
 		msg.mFrames = bufFrames2;
 		msg.mChannels = bufChannels;
 		//printf("sendMessage %d  %d %d %d\n", msg.mBufNum, msg.mPos, msg.mFrames, msg.mChannels);
+#ifdef SC_WIN32
+		pgDiskFifo->Write(msg);
+		pgDiskFifoHasData->Signal();
+#else
 		gDiskFifo.Write(msg);
 		gDiskFifoHasData.Signal();
+#endif
 	}
 
 }
@@ -466,8 +489,13 @@ void VDiskIn_first(VDiskIn *unit, int inNumSamples)
 			msg.mPos = thisPos;
 			msg.mFrames = bufFrames2;
 			msg.mChannels = bufChannels;
+#ifdef SC_WIN32
+			pgDiskFifo->Write(msg);
+			pgDiskFifoHasData->Signal();
+#else
 			gDiskFifo.Write(msg);
 			gDiskFifoHasData.Signal();
+#endif
 
 
 			if((int)ZIN0(3)) {
@@ -580,8 +608,13 @@ void VDiskIn_next(VDiskIn *unit, int inNumSamples)
 				msg.mPos = thisPos;
 				msg.mFrames = bufFrames2;
 				msg.mChannels = bufChannels;
+#ifdef SC_WIN32
+				pgDiskFifo->Write(msg);
+				pgDiskFifoHasData->Signal();
+#else
 				gDiskFifo.Write(msg);
 				gDiskFifoHasData.Signal();
+#endif
 
 				if((int)ZIN0(3)) {
 
@@ -630,8 +663,8 @@ PluginLoad(DiskIO)
 	ft = inTable;
 
 #ifdef SC_WIN32
-	new(&gDiskFifo) MsgFifoNoFree<DiskIOMsg, 256>();
-	new(&gDiskFifoHasData)  SC_SyncCondition();
+	pgDiskFifo = new MsgFifoNoFree<DiskIOMsg, 256>;
+	pgDiskFifoHasData = new SC_SyncCondition;
 #endif
 
 	pthread_t diskioThread;
