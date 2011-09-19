@@ -14,7 +14,7 @@ LocalQuarks
 
 	var <path;
 	var <parent; // the Quarks
-	var all; // contains nil, or all local quarks
+	var all; // all quarks listed in the local repository's directory
 
 	*new { | path, parent |
 		^super.newCopyArgs((path ?? {this.globalPath}), parent)
@@ -27,28 +27,31 @@ LocalQuarks
 	name {
 		^PathName(path).fileName;
 	}
-	quarks {
-		var paths, quarks;
+	allQuarks {
+		var paths;
 		all.isNil.if{
 			// check through each quark in repos/directory
 			paths = (path ++ "/DIRECTORY/*.quark").pathMatch;
-			quarks = Array(paths.size);
+			all = Array(paths.size);
 			paths.do { |p|
 				try
-				{ var q = Quark.fromFile(p, parent); quarks add: q }
+				{ var q = Quark.fromFile(p, parent); all add: q }
 				{ |e| e.errorString.postln }
 			};
-			// check paths that do exist locally
-			all = quarks.select({ |q| (path ++ "/" ++ q.path).pathMatch.notEmpty })
 		};
 		^all
 	}
-	findQuark { arg name, version;
-		var matches;
-		matches = this.quarks.select({ |q| q.name == name });
-		if(version.notNil,{
-			matches = matches.select({ |q| q.version >= version });
-		});
+	quarks {
+		^this.allQuarks.select { |q| q.isLocal }
+	}
+	findQuark { arg name, version, checkedOut = true;
+		var matches, ok;
+		matches = this.allQuarks.select { |q|
+			ok = q.name == name;
+			if( version.notNil ) { ok = ok && q.version >= version };
+			if( checkedOut ) { ok = ok && q.isLocal };
+			ok;
+		};
 		^matches.sort({ |a,b| a.version > b.version }).first
 	}
 	findPath { arg name, version;
@@ -69,7 +72,7 @@ LocalQuarks
 	/// reread local quarks directory
 	reread {
 		all = nil;
-		this.quarks;
+		this.allQuarks;
 	}
 
 		// stupid path has to be escaped above???

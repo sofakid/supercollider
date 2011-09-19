@@ -98,7 +98,7 @@ Quarks
 		this.checkedOut.do { |q| q.postDesc };
 	}
 	listAvailable {
-		this.repos.quarks.do { |q| q.postDesc };
+		this.available.do { |q| q.postDesc };
 	}
 
 	checkoutAll { repos.checkoutAll(local.path) }
@@ -109,7 +109,7 @@ Quarks
 			^this
 		});
 
-		q = repos.findQuark(name,version);
+		q = local.findQuark(name,version,checkedOut:false);
 		if(q.isNil,{
 			Error("Quark not found in repository.").throw;
 		});
@@ -125,6 +125,9 @@ Quarks
 			("mkdir -p" + d).systemCmd;
 		});
 	}
+	available {
+		^local.allQuarks
+	}
 	checkedOut {
 		^local.quarks
 	}
@@ -139,7 +142,7 @@ Quarks
 	}
 	installed {
 		// of quarks in local, select those also present in userExtensionDir
-		^local.quarks.select{|q|
+		^this.checkedOut.select{|q|
 			(Platform.userExtensionDir.escapeChar($ )
 				+/+ local.name
 				+/+ q.path
@@ -341,7 +344,7 @@ Quarks
 
 		// note, this doesn't actually contact svn
 		// it only reads the DIRECTORY entries you've already checked out
-		quarks = this.repos.quarks.copy;
+		quarks = this.available.copy;
 
 		scrB = GUI.window.screenBounds;
 		height = min(quarks.size * 25 + 120, scrB.height - 60);
@@ -447,15 +450,14 @@ Quarks
 			btnUpdate, btnHelp, btnOpenDir, btnReset, btnApply,
 			lblStatus, lblExplanation, quarksView,
 			infoView, btnQuarkHelp, btnQuarkOpen, txtDescription, btnCloseDetails;
-		var quarks, views, curQuark;
+		var views, curQuark;
 		var refresh, msgWorking, msgDone;
 		var screen, palette, gizmo;
 
 		refresh = {
 			quarksView.invokeMethod( \clear );
-			quarks = this.repos.quarks.copy;
 			quarksView.canSort = false;
-			views = quarks.collect{|quark|
+			views = this.available.collect{|quark|
 				var qView = QuarkView.new(quarksView, 500@20, quark,
 					this.installed.detect{|it| it == quark}.notNil);
 				qView;
@@ -492,6 +494,7 @@ Quarks
 				AppClock.sched( 0.2, {
 					protect {
 						this.updateDirectory;
+						this.local.reread;
 					} {
 						refresh.value;
 						quarksView.enabled = true;
