@@ -87,7 +87,8 @@ Quarks
 	}
 
 	updateDirectory {
-		repos.updateDirectory
+		repos.updateDirectory;
+		local.reread
 	}
 
 	listCheckedOut {
@@ -110,6 +111,7 @@ Quarks
 			Error("Quark not found in repository.").throw;
 		});
 		repos.checkout(q, local.path, sync);
+		local.reread;
 	}
 	available {
 		^local.allQuarks
@@ -148,7 +150,7 @@ Quarks
 			if(checkoutIfNeeded) {
 				(name.asString + " not found in local quarks; checking out from remote ...").postln;
 				this.checkout(name, sync: true);
-				q = local.reread.findQuark(name);
+				q = local.findQuark(name);
 				if(q.isNil, {
 					Error("Quark" + name + "install: checkout failed.").throw;
 				});
@@ -474,7 +476,6 @@ Quarks
 				AppClock.sched( 0.2, {
 					protect {
 						this.updateDirectory;
-						this.local.reread;
 					} {
 						refresh.value;
 						quarksView.enabled = true;
