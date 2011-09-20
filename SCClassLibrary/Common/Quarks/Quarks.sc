@@ -85,11 +85,7 @@ Quarks
 		});
 		repos.svn("commit","-m",message,"-F",local.path +/+ q.path);
 	}
-	// TODO: Deprecate "checkoutDirectory" - "updateDirectory" can be used whether or not there's an existing one
-	checkoutDirectory {
-		"Please wait for directory to be checked out.".postln;
-		^this.updateDirectory
-	}
+
 	updateDirectory {
 		repos.updateDirectory
 	}
@@ -114,16 +110,6 @@ Quarks
 			Error("Quark not found in repository.").throw;
 		});
 		repos.checkout(q, local.path, sync);
-	}
-	// DEPRECATED because it has a different and confusing functionality w.r.t. QuarkSVNRepos.checkDir
-	checkDir {
-		var d;
-		"Quarks.checkDir is deprecated".warn;
-		d = (Platform.userExtensionDir +/+ local.name).escapeChar($ );
-		if(d.pathMatch.isEmpty,{
-			("creating: " + d).inform;
-			("mkdir -p" + d).systemCmd;
-		});
 	}
 	available {
 		^local.allQuarks
@@ -279,9 +265,6 @@ Quarks
 	*updateDirectory {
 		^this.global.repos.updateDirectory
 	}
-	*checkoutDirectory {
-		^this.global.checkoutDirectory
-	}
 	*update { |quarkName| this.global.update(quarkName) }
 
 	/*
@@ -358,7 +341,7 @@ Quarks
 		if ( quarks.size == 0 ){
 			GUI.button.new(window, Rect(0, 0, 229, 20))
 			.states_([["checkout Quarks DIRECTORY", nil, Color.gray(0.5, 0.8)]])
-			.action_({ this.checkoutDirectory; });
+			.action_({ this.updateDirectory; });
 		}{
 			GUI.button.new(window, Rect(0, 0, 229, 20))
 			.states_([["update Quarks DIRECTORY", nil, Color.gray(0.5, 0.8)]])

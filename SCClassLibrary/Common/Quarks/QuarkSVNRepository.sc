@@ -110,20 +110,13 @@ QuarkSVNRepository
 		var dir;
 		dir = local.path.select{|c| (c != $\\)};
 		if(File.exists(dir).not, {
-			// This method SHOULD NOT check the dir out on your behalf! That's not what it's for! Use .checkoutDirectory for that.
+			// This method SHOULD NOT check the dir out on your behalf! That's not what it's for! Use .updateDirectory for that.
 			//"Quarks dir is not yet checked out.  Execute:".debug;
 			//this.svn("co","--non-recursive",this.url, local.path.escapeChar($ ));
 			//this.svn("up", local.path.escapeChar($ ) +/+ "DIRECTORY");
 			^false;
 		});
 		^true;
-	}
-
-	// updateDirectory and checkoutDirectory can be handled by the same function, simplifying the user experience, hopefully.
-	// TODO: deprecate checkoutDirectory methods, simply use updateDirectory whether or not it's the first time.
-	//        Then update the help docs to the simpler instructions.
-	checkoutDirectory {|forceSync=false|
-		^this.updateDirectory(forceSync);
 	}
 
 	// DIRECTORY contains a quark spec file for each quark regardless if checked out / downloaded or not.
@@ -156,7 +149,7 @@ QuarkSVNRepository
 	update {
 		this.checkSVNandBackupIfNeeded;
 		if(this.checkDir.not){
-			this.checkoutDirectory; // ensures that the main folder exists
+			this.updateDirectory; // ensures that the main folder exists
 			this.svn("update",local.path.escapeChar($ ));
 		}{
 			// The "checkout" method can do the updating of individual quarks for us
