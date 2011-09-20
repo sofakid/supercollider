@@ -177,9 +177,6 @@ Quarks
 			^this
 		});
 
-		// create /quarks/ directory if needed
-		if(this.repos.checkDir.not){this.checkoutDirectory};
-
 		// Now ensure that the dependencies are installed (if available given the current active reposses)
 		if(includeDependencies, {
 			q.dependencies(true).do({ |dep|
