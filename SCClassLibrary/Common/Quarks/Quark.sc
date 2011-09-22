@@ -183,7 +183,7 @@ Quark
 }
 
 QuarkView {
-	var	<quark, <isInstalled, <toBeInstalled = false, <toBeDeinstalled = false, installButton,
+	var	<quark, <isInstalled, <action, installButton,
 		nameView, authorView, infoButton, srcButton, browseHelpButton,
 		<treeItem;
 
@@ -262,7 +262,7 @@ QuarkView {
 				["x", nil, if(c.notNil){Color.red.blend(c,0.5)}{Color.red(1, 0.5)}]
 			];
 			installButton.action = { arg butt;
-				toBeDeinstalled = butt.value>0;
+				action = if( butt.value == 0 ) { \none } { \uninstall };
 			};
 
 		},{
@@ -274,7 +274,7 @@ QuarkView {
 				["*", nil, if(c.notNil){Color.blue.blend(c,0.5)}{Color.blue(1, 0.5)}]
 			];
 			installButton.action = { arg butt;
-				toBeInstalled = butt.value>0;
+				action = if( butt.value == 0 ) { \none } { \install };
 			};
 		});
 		this.reset;
@@ -282,9 +282,8 @@ QuarkView {
 	reset {
 		installButton.valueAction = 0;
 	}
-	flush {
-		toBeInstalled.if  {isInstalled = true;  toBeInstalled   = false};
-		toBeDeinstalled.if{isInstalled = false; toBeDeinstalled = false};
+	isInstalled_ { arg yes;
+		isInstalled = yes;
 		this.updateButtonStates;
 	}
 	fullDescription {

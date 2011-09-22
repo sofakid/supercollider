@@ -386,18 +386,24 @@ Quarks
 		];
 		saveButton.action = { arg butt;
 			Task{
+				var installed;
 				warning.string = "Applying changes, please wait";
 				warning.background_(Color(1.0, 1.0, 0.9));
 				0.1.wait;
 				views.do{|qView|
-					qView.toBeInstalled.if({
-						this.install(qView.quark.name);
-						qView.flush
-					});
-					qView.toBeDeinstalled.if({
-						this.uninstall(qView.quark.name);
-						qView.flush;
-					})
+					qView.action.switch (
+						\install, {
+							this.install(qView.quark.name);
+						},
+						\uninstall, {
+							this.uninstall(qView.quark.name);
+						}
+					)
+				};
+				// refresh install status
+				installed = this.installed;
+				views.do{ |qv|
+					qv.isInstalled = installed.detect({|q| q.name == qv.quark.name }).notNil;
 				};
 				warning.string = "Done. You should now recompile sclang";
 				warning.background_(Color(0.9, 1.0, 0.9));
@@ -504,18 +510,20 @@ Quarks
 				quarksView.enabled = false;
 				msgWorking.value("Applying changes, please wait...");
 				AppClock.sched( 0.2, {
+					var installed;
 					protect {
 						views.do{|qView|
-							qView.toBeInstalled.if({
-								this.install(qView.quark.name);
-								qView.flush
-							});
-							qView.toBeDeinstalled.if({
-								this.uninstall(qView.quark.name);
-								qView.flush;
-							})
-						};
+							qView.action.switch (
+								\install, {
+									this.install(qView.quark.name);
+								},
+								\uninstall, {
+									this.uninstall(qView.quark.name);
+								}
+							)
+						}
 					} {
+						refresh.value;
 						msgDone.value("Changes applied." +
 							"You should recompile the class library for changes to take effect."
 						);
