@@ -75,7 +75,7 @@ Quark
  		version = this.getVersion(blob[\version]);
 		dependencies = this.getDependencies(blob[\dependencies]);
 		author = this.getString(blob[\author]);
-		isLocal = (Quarks.local.simplePath ++ "/" ++ path).pathMatch.notEmpty;
+		isLocal = ((parent ?? Quarks).local.simplePath ++ "/" ++ path).pathMatch.notEmpty;
 		info = blob;
 		tags = ();
 	}
@@ -231,7 +231,10 @@ QuarkView {
 				srcButton = GUI.button.new(parent, sourceBounds)
 					.font_( GUI.font.new( GUI.font.defaultSansFace, 10 ))
 					.states_([["src"]]).action_{
-						("open " ++ ("%/%".format(Quarks.local.path, quark.path).escapeChar($ ))).unixCmd;
+						("open " ++ ("%/%".format(
+							(quark.parent ?? Quarks).local.path,
+							quark.path
+						).escapeChar($ ))).unixCmd;
 					};
 			};
 
@@ -289,7 +292,11 @@ QuarkView {
 		var helpdoc = quark.info.helpdoc;
 		if(helpdoc.notNil) {
 				// get full path
-			helpdoc = "%/%/%".format(Quarks.local.simplePath, quark.path, helpdoc);
+			helpdoc = "%/%/%".format(
+				(quark.parent ?? Quarks).local.simplePath,
+				quark.path,
+				helpdoc
+			);
 			if(File.exists(helpdoc).not) { helpdoc = nil };
 		};
 		window = GUI.window.new(quark.name, Rect(100, 100, 400, 200)).front;
