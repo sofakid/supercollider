@@ -28,7 +28,7 @@
 
 (eval-when-compile (require 'sclang-util)
                    (require 'sclang-language))
-(eval-and-compile (require 'sclang-interp))
+(eval-and-compile (require 'sclang-interp) (require 'cl))
 
 (defvar sclang-widgets nil)
 (make-variable-buffer-local 'sclang-widgets)
