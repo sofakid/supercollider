@@ -45,8 +45,9 @@ EmacsInterface {
 			var result, dt;
 
 			dt = {
-				result = IdentitySet.new;
-
+				result = #[thisProcess, thisThread, thisClock, thisFunction,
+                    currentEnvironment, topEnvironment, doneAction].as(IdentitySet);
+				
 				Class.allClasses.do { | class |
 					if (class.isMetaClass.not) {
 						result.add(class.name);
@@ -197,7 +198,14 @@ EmacsInterface {
 			//	devpath.postln;
 			Document.open( devpath ).front;
 			name -> devpath
-		});
+		})
+		.put( \handleCallback, { | number, command |
+			( " scel_emacs_callback_start " ++
+				number.asString ++
+				" " ++
+				command.interpret.asLispString ++
+				" scel_emacs_callback_end" ).postln;
+		} )
 	}
 }
 
