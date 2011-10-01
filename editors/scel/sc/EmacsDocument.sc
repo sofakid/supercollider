@@ -70,6 +70,100 @@ EmacsDocument
 		});
 	}
 
+	getEmacsInfoAsync { | arglist, returnFunc |
+		// allows us to get info from emacs asynchronously
+		Emacs.sendToLisp(
+			\_info,
+			[ this ] ++ arglist,
+			{ | resultList | returnFunc.value( *resultList ) }
+		);
+		^nil;
+	}
+
+	getEmacsInfoSync { | arglist |
+		// only usable inside a routine, but matches the Document API
+		var result = nil;
+		var delta_t = 0.001;
+		if(thisThread.class.asSymbol != \Routine,
+			{ MethodError(
+				"EmacsDocument synchronous methods can only be called" ++
+				" inside a Routine" ).throw } );
+		this.getEmacsInfoAsync( arglist, { | x | result = x } );
+		while( { and( result.isNil, delta_t < 10 ) },
+			{ sleep( delta_t = delta_t * 1.4 ) }
+		);
+		^result;
+	}
+	
+	// synchronous, only in routines
+	string { | rangestart, rangesize = 1 |
+		^this.getEmacsInfoSync( [ \_string, rangestart, rangesize ] );
+	}
+
+	currentLine {
+		^this.getEmacsInfoSync( [ \_currentLine ] );
+	}
+
+	currentBlock {
+		^this.getEmacsInfoSync( [ \_currentBlock ] );
+	}
+
+	currentWord {
+		^this.getEmacsInfoSync( [ \_currentWord ] );
+	}
+
+	selectedText {
+		^this.getEmacsInfoSync( [ \_selectedText ] );
+	}
+
+	getBackgroundColor {
+		^this.getEmacsInfoSync( [ \_background ] );
+	}
+
+	selectedRangeLocation {
+		^this.getEmacsInfoSync( [ \_rangeLocation ] );
+	}
+
+	selectedRangeSize {
+		^this.getEmacsInfoSync( [ \_rangeSize ] );
+	}
+
+	// async, usable outside routines
+	stringAsync { | rangestart, returnFunc, rangesize = 1 |
+		^this.getEmacsInfoAsync( [ \_string, rangestart, rangesize ],
+			returnFunc );
+	}
+
+	currentLineAsync { | returnFunc |
+		^this.getEmacsInfoAsync( [ \_currentLine ], returnFunc );
+	}
+
+	currentBlockAsync { | returnFunc |
+		^this.getEmacsInfoAsync( [ \_currentBlock ], returnFunc );
+	}
+
+	currentWordAsync { |returnFunc|
+		^this.getEmacsInfoAsync( [ \_currentWord ], returnFunc );
+	}
+
+	selectedTextAsync { | returnFunc |
+		^this.getEmacInfoAsync( [ \_selectedText ], returnFunc );
+	}
+
+	getBackgroundColorAsync { | returnFunc |
+		^this.getEmacsInfoAsync( [ \_background ], returnFunc );
+	}
+
+	selectedRangeLocationAsync { | returnFunc |
+		^this.getEmacsInfoAsync( [ \_rangeLocation ], returnFunc );
+	}
+
+	selectedRangeSizeAsync { | returnFunc |
+		^this.getEmacsInfoAsync( [ \_rangeSize ], returnFunc );
+	}
+
+	// from here down should be compatible with Document
+
 	*documentDo { | id, function |
 		var doc;
 		doc = documentMap.at(id);
@@ -121,52 +215,26 @@ EmacsDocument
 		Emacs.sendToLisp(\_documentPopTo, this);
 	}
 
-	syntaxColorize {
-		Emacs.sendToLisp(\_documentSyntaxColorize, this);
+	syntaxColorize { | rangestart = -1, rangesize = 0 |
+		Emacs.sendToLisp(\_documentSyntaxColorize,
+			[ this, rangestart, rangesize ] );
 	}
 
-	selectRange { arg start=0, length=0;
-		//_TextWindow_SelectRange
+	selectRange { | start = 0, length = 0 |
+		Emacs.sendToLisp(\_selectRange, [this, start, length]);
 	}
+
 	prisEditable_{ | flag = true |
 		Emacs.sendToLisp(\_documentSetEditable, [this, flag]);
 	}
+
 	removeUndo{
 		Emacs.sendToLisp(\_documentRemoveUndo, this);
 	}
 
-	string{ arg rangestart, returnFunc, rangesize = 1;
-		var rangeend, resultString;
-		if ( rangestart.isNil,{
-			rangestart = '(point-min)';
-			rangeend = '(point-max)';
-		},{
-			rangeend = rangestart + rangesize;
-		});
-		Emacs.evalLispExpression(['with-current-buffer', title, [ 'buffer-substring-no-properties', rangestart, rangeend ]].asLispString;, { |result| returnFunc.value( result ); } );
-		^nil;
-	}
-
 	string_{|string, rangestart = -1, rangesize = 1|
-		Emacs.sendToLisp(\_documentPutString, [this, string]);
-	}
-
-	currentLine { |returnFunc|
-		Emacs.evalLispExpression(['sclang-line-at-point'].asLispString, { |result| returnFunc.value( result ) }  );
-		//		['with-current-buffer', title, ['thing-at-point', '\'line'] ].asLispString, { |result| returnFunc.value( result ) } )
-		^nil;
-
-		// '(set-text-properties start end nil)' will remove text properties somehow?
-	}
-
-	currentBlock { |returnFunc|
-		Emacs.evalLispExpression(['sclang-defun-at-point'].asLispString, { |result| returnFunc.value( result ) }  );
-		^nil;
-	}
-
-	currentWord { |returnFunc|
-		Emacs.evalLispExpression(['with-current-buffer', title, ['current-word'] ].asLispString, { |result| returnFunc.value( result ) } )
-		^nil;
+		Emacs.sendToLisp( \_documentPutString,
+			[ this, string, rangestart, rangesize ] );
 	}
 
 	// environment support
@@ -191,6 +259,31 @@ EmacsDocument
 		};
 		if ( current === this, { current = nil } );
 		//super.didResignKey;
+	}
+
+	setBackgroundColor { | color |
+		Emacs.sendToLisp( \_background_,
+			[ this, color.red, color.green, color.blue ] );
+	}
+
+	setTextColor { | color, rangestart, rangesize |
+		Emacs.sendToLisp( \_textColor_,
+			[ this, color.red, color.green, color.blue,
+				rangestart, rangesize ] );
+	}
+
+
+	insertTextRange { arg string, rangestart, rangesize;
+		Emacs.sendToLisp( \_insertTextRange,
+			[ this, string, rangestart, rangesize ] );
+	}
+	
+	setFont {
+		| rangestart, rangesize, family, height, weight, slant,
+		overline, underline, strikethrough, box |
+		Emacs.sendToLisp( \_font_,
+			[ this, rangestart, rangesize, family, height, weight, slant,
+				overline, underline, strikethrough, box ] );
 	}
 
 
@@ -273,35 +366,25 @@ EmacsDocument
 
 	*prBasicNew { ^super.new }
 
-	// unimplemented methods
-/*
-	prGetBounds { | bounds | ^bounds }
-	prSetBounds { }
-	setFont { }
-	setTextColor { }
-	text {
-		^""
-	}
-	selectedText {
-		^""
-	}
-	rangeText { arg rangestart=0, rangesize=1;
-		^""
-	}
-	prinsertText { arg dataptr, txt;
-	}
-	insertTextRange { arg string, rangestart, rangesize;
-	}
-	setBackgroundColor { }
-	selectedRangeLocation {
-		^0
-	}
-	selectedRangeSize {
-		^0
-	}
-	prselectLine { arg line;
+	prselectLine { | line |
+		Emacs.sendToLisp( \_selectLine, [ this, line ] );
 	}
 
+	prGetBounds { | returnFunc |
+		^this.getEmacsInfo( [ \_bounds ], returnFunc );
+	}
+
+	prSetBounds { | rect |
+		Emacs.sendToLisp( \_bounds_,
+			[ this, rect.left, rect.top, rect.width, rect.height ] );
+	}
+
+	prinsertText { | dataptr, txt |
+		Emacs.sendToLisp( \_insertText, [ this, dataptr, txt ] );
+	}
+
+	// unimplemented methods
+/*
 	// invalid methods
 	initByIndex {
 		^this.shouldNotImplement(thisMethod)
