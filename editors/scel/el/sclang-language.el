@@ -15,9 +15,11 @@
 ;; Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
 ;; USA
 
+;; does not need to be loaded to compile this code
 (eval-when-compile
-  (require 'cl))
+  (defun cscope-find-this-text-string (&rest ignore)))
 
+(require 'cl)
 (require 'sclang-browser)
 (require 'sclang-interp)
 (require 'sclang-util)
@@ -256,7 +258,8 @@ low-resource systems."
       (car (member string sclang-symbol-table))
     string))
 
-(defun sclang-read-symbol (prompt &optional default predicate require-match inherit-input-method)
+(defun sclang-read-symbol (prompt &optional default predicate require-match
+				  inherit-input-method)
   (if sclang-use-symbol-table
       (flet ((make-minibuffer-local-map
 	      (parent-keymap)
@@ -266,10 +269,10 @@ low-resource systems."
 		(define-key map [??] 'self-insert-command)
 		map)))
 	(let ((symbol (sclang-get-symbol default))
-	      (minibuffer-local-completion-map (make-minibuffer-local-map
-						minibuffer-local-completion-map))
-	      (minibuffer-local-must-match-map (make-minibuffer-local-map
-						minibuffer-local-completion-map)))
+	      (minibuffer-local-completion-map
+	       (make-minibuffer-local-map minibuffer-local-completion-map))
+	      (minibuffer-local-must-match-map
+	       (make-minibuffer-local-map minibuffer-local-completion-map)))
 	  (completing-read (sclang-make-prompt-string prompt symbol)
 			   (sclang-get-symbol-completion-table)
 			   (sclang-make-symbol-completion-predicate predicate)
@@ -316,7 +319,8 @@ Use font-lock information if font-lock-mode is enabled."
     (when success
       (beginning-of-line)
       (cond ((looking-at sclang-block-regexp) (goto-char (1- (match-end 1))))
-	    ((looking-at sclang-class-definition-regexp) (goto-char (1- (match-end 0)))))
+	    ((looking-at sclang-class-definition-regexp)
+	     (goto-char (1- (match-end 0)))))
       t)))
 
 (defun sclang-point-in-defun-p ()
@@ -430,7 +434,9 @@ are considered."
 			(if (sclang-class-name-p pattern)
 			    'sclang-class-name-p
 			  'sclang-method-name-p)))
-	 (completion (try-completion pattern table (lambda (assoc) (funcall predicate (car assoc))))))
+	 (completion (try-completion pattern table
+				     (lambda (assoc)
+				       (funcall predicate (car assoc))))))
     (cond ((eq completion t))
 	  ((null completion)
 	   (sclang-message "Can't find completion for '%s'" pattern)
