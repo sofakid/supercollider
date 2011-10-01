@@ -201,8 +201,6 @@ EmacsDocument
 		^title;
 	}
 
-	background_ {arg color, rangestart= -1, rangesize = 0;
-	}
 	stringColor_ {arg color, rangeStart = -1, rangeSize = 0;
 	}
 
