@@ -110,21 +110,21 @@
 
 (defun sclang-fill-mode-map (map)
   ;; process control
-  (define-key map "\C-c\C-l"			'sclang-recompile)
-  (define-key map "\C-c\C-o"			'sclang-start)
+  (define-key map "\C-c\C-l"		'sclang-recompile)
+  (define-key map "\C-c\C-o"		'sclang-start)
   ;; post buffer control
   (define-key map "\C-c<"			'sclang-clear-post-buffer)
   (define-key map "\C-c>"			'sclang-show-post-buffer)
   ;; workspace access
-  (define-key map "\C-c\C-w"			'sclang-switch-to-workspace)
+  (define-key map "\C-c\C-w"		'sclang-switch-to-workspace)
   ;; code evaluation
-  (define-key map "\C-c\C-c"			'sclang-eval-region-or-line)
-  (define-key map "\C-c\C-d"		        'sclang-eval-region)
+  (define-key map "\C-c\C-c"		'sclang-eval-region-or-line)
+  (define-key map "\C-c\C-d"		'sclang-eval-region)
   (define-key map "\C-\M-x"			'sclang-eval-defun)
-  (define-key map "\C-c\C-e"			'sclang-eval-expression)
-  (define-key map "\C-c\C-f"			'sclang-eval-document)
+  (define-key map "\C-c\C-e"		'sclang-eval-expression)
+  (define-key map "\C-c\C-f"		'sclang-eval-document)
   ;; language information
-  (define-key map "\C-c\C-n"			'sclang-complete-symbol)
+  (define-key map "\C-c\C-n"		'sclang-complete-symbol)
   (define-key map "\M-\t"			'sclang-complete-symbol)
   (define-key map "\C-c:"			'sclang-find-definitions)
   (define-key map "\C-c;"			'sclang-find-references)
@@ -134,13 +134,15 @@
   (define-key map "\C-c{"			'sclang-dump-full-interface)
   (define-key map "\C-c["			'sclang-dump-interface)
   ;; documentation access
-  (define-key map "\C-c\C-h"			'sclang-find-help)
-  (define-key map "\C-\M-h"                     'sclang-goto-help-browser)
+  (define-key map "\C-c\C-h"		'sclang-find-help)
+  (define-key map "\C-\M-h"			'sclang-goto-help-browser)
+  (define-key map "\C-c\C-y"		'sclang-open-help-gui)
+  (define-key map "\C-ch"			'sclang-find-help-in-gui)
   ;; language control
-  (define-key map "\C-c\C-r"			'sclang-main-run)
-  (define-key map "\C-c\C-s"			'sclang-main-stop)
-  (define-key map "\C-c\C-p"			'sclang-show-server-panel)
-  (define-key map "\C-c\C-k"                    'sclang-edit-dev-source)
+  (define-key map "\C-c\C-r"		'sclang-main-run)
+  (define-key map "\C-c\C-s"		'sclang-main-stop)
+  (define-key map "\C-c\C-p"		'sclang-show-server-panel)
+  (define-key map "\C-c\C-k"		'sclang-edit-dev-source)
   ;; electric characters
   (define-key map "}"				'sclang-electric-brace)
   (define-key map ")"				'sclang-electric-brace)
@@ -149,7 +151,7 @@
   (define-key map "*"				'sclang-electric-star)
   ;; menu
   (let ((title "SCLang"))
-    (define-key map [menu-bar sclang] (cons title (sclang-mode-make-menu title))))
+	(define-key map [menu-bar sclang] (cons title (sclang-mode-make-menu title))))
   ;; return map
   map)
 
