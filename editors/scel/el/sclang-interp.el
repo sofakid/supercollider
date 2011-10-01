@@ -96,11 +96,12 @@ Default behavior is to only scroll when point is not at end of buffer."
   "Show SuperCollider process buffer.
 If EOB-P is non-nil, positions cursor at end of buffer."
   (interactive "P")
-  (with-sclang-post-buffer
-   (let ((window (display-buffer (current-buffer))))
-     (when eob-p
-       (goto-char (point-max))
-       (save-selected-window
+  (unless (eq (current-buffer) (sclang-get-post-buffer))
+    (with-sclang-post-buffer
+     (let ((window (display-buffer (current-buffer) :frame t)))
+       (when eob-p
+	 (goto-char (point-max)))
+	 (save-selected-window
 	 (set-window-point window (point-max)))))))
 
 (defun sclang-clear-post-buffer ()
@@ -250,6 +251,9 @@ If EOB-P is non-nil, positions cursor at end of buffer."
     (sclang-on-library-shutdown)
     (sclang-stop-command-process)))
 
+(defvar sclang-post-color (face-attribute 'default :foreground))
+;  this will usually get set by the _postColor handler via sclang
+
 (defun sclang-process-filter (process string)
   (let ((buffer (process-buffer process)))
     (with-current-buffer buffer
@@ -263,7 +267,8 @@ If EOB-P is non-nil, positions cursor at end of buffer."
 	  (subst-char-in-string sclang-bullet-latin-1 sclang-bullet-utf-8 string t)
 	  ;; insert the text, advancing the process marker.
 	  (goto-char (process-mark process))
-	  (insert string)
+	  (insert (propertize string
+			      'face (cons 'foreground-color sclang-post-color)))
 	  (set-marker (process-mark process) (point)))
 	(when move-point
 	  (goto-char (process-mark process))
@@ -403,6 +408,10 @@ Change this if \"cat\" has a non-standard name or location."
       (message "SCLang: Couldn't create command fifo")
       (setq sclang-command-fifo nil))))
 
+(defun sclang-command-process-sentinel (proc msg)
+  (and (memq (process-status proc) '(exit signal))
+       (sclang-release-command-fifo)))
+
 (defun sclang-start-command-process ()
   (sclang-create-command-fifo)
   (when sclang-command-fifo
@@ -418,6 +427,7 @@ Change this if \"cat\" has a non-standard name or location."
       (let ((proc (start-process
 		   sclang-command-process nil
 		   sclang-cat-program sclang-command-fifo)))
+	(set-process-sentinel proc 'sclang-command-process-sentinel)
 	(set-process-filter proc 'sclang-command-process-filter)
 	;; this is important. use a unibyte stream without eol
 	;; conversion for communication.
@@ -712,6 +722,15 @@ if PRINT-P is non-nil. Return STRING if successful, otherwise nil."
  (lambda (expr)
    (when (stringp expr)
      (eval (read expr)))))
+
+(sclang-set-command-handler
+ '_postColor
+ (lambda (args)
+   (multiple-value-bind (r g b) args
+     (setq sclang-post-color (format "RGB:%x/%x/%x"		 
+				     (floor (* r 255))
+				     (floor (* g 255))
+				     (floor (* b 255)))))))
 
 ;; =====================================================================
 ;; module setup
