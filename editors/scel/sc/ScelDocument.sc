@@ -49,17 +49,31 @@ ScelDocument : Document{
 		cFuncs = [checkCurrent];
 		path_p = path;
 		title_p = path;
-		EmacsDocument.prNewFromPath(path, selectionStart, selectionLength, { |doc| thisdoc = doc; thisdoc.sceld = this; cFuncs.do{ |it| it.value(doc); } } );
-		if ( toFront, { this.front } );
+		EmacsDocument.prNewFromPath(
+			selectionStart, selectionLength,
+			{ |doc|
+				thisdoc = doc;
+				thisdoc.sceld = this;
+				if ( toFront, { this.front } );
+				cFuncs.do{ |it| it.value(doc); };
+			}
+		);
 		^this
 	}
 
 	init{ |title, string, makeListener, toFront|
 		//		"ScelDocument.init".postln;
-		checkCurrent = { |doc| if ( EmacsDocument.current === doc, { this.didBecomeKey } ); };
+		checkCurrent = { |doc|
+			if ( EmacsDocument.current === doc,
+				{ this.didBecomeKey } ) };
 		cFuncs = [checkCurrent];
 		title_p = title;
-		EmacsDocument.prNewFromString(title, string, makeListener, { |doc| thisdoc = doc; thisdoc.sceld = this; cFuncs.do{ |it| it.value(doc)} });
+		EmacsDocument.prNewFromString(title, string, makeListener,
+			{ |doc|
+				thisdoc = doc;
+				thisdoc.sceld = this;
+				cFuncs.do{ |it| it.value(doc)}
+			});
 		if ( toFront, { this.front } );
 		^this
 	}
@@ -80,6 +94,10 @@ ScelDocument : Document{
 		});
 	}
 
+	getInfo { | arglist, callBack |
+		thisdoc.getEmacsInfoAsync( arglist, callBack );
+	}
+
 	title{
 		if ( thisdoc.notNil, {
 			^thisdoc.title;
@@ -87,6 +105,9 @@ ScelDocument : Document{
 			^("***"++title_p++"***")
 		});
 	}
+
+	// blastedly stupid hack because nowExecutingPath doesn't work without it
+	dataptr { ^thisdoc.dataptr }
 
 	// printing
 	printOn { | stream |
@@ -137,9 +158,9 @@ ScelDocument : Document{
 			cFuncs = cFuncs ++ { this.unfocusedFront };
 		});
 	}
-	syntaxColorize {
+	syntaxColorize { | rangestart = -1, rangesize = 0 |
 		if ( thisdoc.notNil, {
-			thisdoc.syntaxColorize;
+			thisdoc.syntaxColorize( rangestart, rangesize );
 		},{
 			cFuncs = cFuncs ++ { this.syntaxColorize };
 		});
@@ -244,88 +265,58 @@ ScelDocument : Document{
 	}
 
 	string {arg rangestart, rangesize = 1;
-		//		var cond;
-		currentString = nil;
-		thisdoc.string( rangestart, { |v| currentString = v }, rangesize );
-//		cond = Condition.new( { currentString.notNil } );
-//		cond.wait;
-		//		while ( { currentString.isNil }, {"wait for string".postln;} );
-		"Asynchronous: retrieve the result with .currentString".postln;
-		^currentString;
+		^thisdoc.string( rangestart, rangesize );
 	}
 
 	currentLine {
-		//		var cond;
-		currentString = nil;
-		thisdoc.currentLine( { |v| currentString = v } );
-//		cond = Condition.new( { currentString.notNil } );
-//		cond.wait;
-		//		while ( { currentString.isNil }, {"wait for string".postln;} );
-		"Asynchronous: retrieve the result with .currentString".postln;
-		^currentString;
+		^thisdoc.currentLine();
 	}
 
 	currentWord {
-		//		var cond;
-		currentString = nil;
-		thisdoc.currentWord( { |v| currentString = v } );
-//		cond = Condition.new( { currentString.notNil } );
-//		cond.wait;
-		//		while ( { currentString.isNil }, {"wait for string".postln;} );
-		"Asynchronous: retrieve the result with .currentString".postln;
-		^currentString;
+		^thisdoc.currentWord();
 	}
 
 	currentBlock {
-		//		var cond;
-		currentString = nil;
-		thisdoc.currentBlock( { |v| currentString = v } );
-//		cond = Condition.new( { currentString.notNil } );
-//		cond.wait;
-		//		while ( { currentString.isNil }, {"wait for string".postln;} );
-		"Asynchronous: retrieve the result with .currentString".postln;
-		^currentString;
+		^thisdoc.currentBlock();
 	}
 
 
 	text {
 		^this.string;
 	}
+
 	rangeText { arg rangestart=0, rangesize=1;
 		^this.string( rangestart, rangesize );
 	}
 
-	dataptr { ^thisdoc.tryPerform(\dataptr) }
-
-	// not implemented:
-	selectRange { arg start=0, length=0; }
-	background_ {arg color, rangestart= -1, rangesize = 0;
-	}
-	stringColor_ {arg color, rangeStart = -1, rangeSize = 0;
+	selectRange { | start=0, length=0 |
+		thisdoc.selectRange( start, length );
+		^nil;
 	}
 
-	prGetBounds { | bounds | ^bounds }
-	prSetBounds { }
-	setFont { }
-	setTextColor { }
 	selectedText {
-		^""
-	}
-	prinsertText { arg dataptr, txt;
-	}
-	insertTextRange { arg string, rangestart, rangesize;
-	}
-	setBackgroundColor { }
-	selectedRangeLocation {
-		^0
-	}
-	selectedRangeSize {
-		^0
-	}
-	prselectLine { arg line;
+		thisdoc.selectedText();
 	}
 
-	bounds_{
+	*postColor_{ | color |
+		Emacs.sendToLisp(\_postColor, [ color.red, color.green, color.blue ] );
+	}
+
+	background {
+		^thisdoc.getBackgroundColor();
+	}
+
+	background_ { | color |
+		thisdoc.setBackgroundColor( color );
+	}
+
+	setTextColor { | color, rangeStart = -1, rangeSize = 0 | 
+		thisdoc.setTextColor(color, rangeStart, rangeSize);
+	}
+
+	*prGetIndexOfListener{
+		^this.allDocuments.detectIndex(
+			{ |doc| doc.title == "*SCLang:PostBuffer*" } );
 	}
 
 	*current {
@@ -337,9 +328,57 @@ ScelDocument : Document{
 		}
 	}
 
-	*prGetIndexOfListener{
-		^this.allDocuments.detectIndex( { |doc| doc.title == "*SCLang:PostBuffer*" } );
+	selectedRangeLocation {
+		^thisdoc.selectedRangeLocation();
 	}
+
+	selectedRangeSize {
+		^thisdoc.selectedRangeSize();
+	}
+
+	prselectLine { | line |
+		thisdoc.prselectLine( line );
+	}
+
+	prGetBounds {
+		^thisdoc.prGetBounds();
+	}
+
+	prSetBounds { | rect |
+		thisdoc.prSetBounds( rect );
+	}
+
+	bounds {
+		this.prGetBounds();
+	}
+
+	bounds_{ | rect |
+		this.prSetBounds( rect );
+	}
+
+	prinsertText { | dataptr, txt |
+		thisdoc.prinsertText( dataptr, txt );
+	}
+
+	insertTextRange { | string, rangestart, rangesize |
+		thisdoc.insertTextRange( string, rangestart, rangesize );
+	}
+
+	setFont {
+		| rangestart, rangesize, family, height, weight, slant,
+		overline, underline, strikethrough, box |
+		thisdoc.setFont( rangestart, rangesize, family, height, weight, slant,
+			overline, underline, strikethrough, box );
+	}
+
+	font_ {
+		| rangestart, rangesize, family, height, weight, slant,
+		overline, underline, strikethrough, box |
+		this.setFont( rangestart, rangesize, family, height, weight, slant,
+			overline, underline, strikethrough, box );
+	}
+
+	// not implemented:
 
 	// invalid methods
 	initByIndex {
@@ -353,7 +392,5 @@ ScelDocument : Document{
 	}
 	prGetLastIndex {
 		^this.shouldNotImplement(thisMethod)
-	}
-	*postColor_{
 	}
 }
