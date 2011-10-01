@@ -119,3 +119,7 @@ left-clicking on the server name.
 servers instantiated from the language will automatically be available
 in the mode line.
 
+
+This version incorporates extensions by Justin Glenn Smith, originally published at
+
+http://noisesmith-linux-audio.googlecode.com/svn/trunk/scel-fork
