@@ -55,6 +55,7 @@
   (modify-syntax-entry ?:  "." table)
   (modify-syntax-entry ?\; "." table)
   (modify-syntax-entry ?^ "." table)
+  (modify-syntax-entry ?. "." table)
   ;; parenthesis
   (modify-syntax-entry ?\( "()" table)
   (modify-syntax-entry ?\) ")(" table)
@@ -129,6 +130,7 @@
   (define-key map "\C-c;"			'sclang-find-references)
   (define-key map "\C-c}"			'sclang-pop-definition-mark)
   (define-key map "\C-c\C-m"			'sclang-show-method-args)
+  (define-key map "\C-c\C-i"                    'sclang-insert-method-args)
   (define-key map "\C-c{"			'sclang-dump-full-interface)
   (define-key map "\C-c["			'sclang-dump-interface)
   ;; documentation access
@@ -541,11 +543,15 @@ Returns the column to indent to."
        (unless buffer
 	 (setf buffer (find-file-noselect file-name)))
        (when buffer
-	 (unless (sclang-document-p buffer)
-	   (with-current-buffer buffer (sclang-mode)))
-	 (goto-char (max (point-min) (min (point-max) region-start)))
-	 ;; TODO: how to activate region in transient-mark-mode?
-	 (sclang-document-id buffer))))))
+	 (with-current-buffer buffer
+	   (unless (sclang-document-p buffer)
+	     (sclang-mode))
+	   (when (not (= region-length 0))
+	     (push-mark (max (point-min)
+			     (min (point-max)
+				  (+ region-start region-length))) t t))
+	   (goto-char (max (point-min) (min (point-max) region-start)))
+	   (sclang-document-id buffer)))))))
 
 (sclang-set-command-handler
  '_documentNew
@@ -560,9 +566,11 @@ Returns the column to indent to."
 
 (sclang-set-command-handler
  '_documentClose
- (lambda (arg)
-   (let ((doc (and (integerp arg) (sclang-get-document arg))))
-     (and doc (kill-buffer doc)))
+ (lambda (id)
+   (let ((doc (and (integerp id) (sclang-get-document id))))
+     (unless doc (lwarn '(sclang) :error
+			"invalid doc id in _documentClose handler %S" id))
+     (when doc (kill-buffer doc)))
    nil))
 
 (sclang-set-command-handler
@@ -571,6 +579,8 @@ Returns the column to indent to."
    (multiple-value-bind (id name) arg
      (when (stringp name)
        (let ((doc (and (integerp id) (sclang-get-document id))))
+	 (unless doc (lwarn '(sclang) :error
+			    "invalid doc id in _documentRename handler %S" id))
 	 (when doc
 	   (with-current-buffer doc
 	     (rename-buffer name t)
@@ -582,6 +592,9 @@ Returns the column to indent to."
  (lambda (arg)
    (multiple-value-bind (id flag) arg
      (let ((doc (and (integerp id) (sclang-get-document id))))
+       (unless doc (lwarn '(sclang) :error
+			  "invalid doc id in _documentSetEditable handler %S"
+			  id))
        (when doc
 	 (with-current-buffer doc
 	   (setq buffer-read-only (not flag))
@@ -590,28 +603,359 @@ Returns the column to indent to."
 
 (sclang-set-command-handler
  '_documentSwitchTo
- (lambda (arg)
-   (let ((doc (and (integerp arg) (sclang-get-document arg))))
-     (and doc (switch-to-buffer doc)))
+ (lambda (id)
+   (let ((doc (and (integerp id) (sclang-get-document id))))
+     (unless doc (lwarn '(sclang) :debug
+			"invalid doc id in _documentSwitchTo handler %S" id))
+     (when doc (switch-to-buffer doc)))
    nil))
 
 (sclang-set-command-handler
  '_documentPutString
-(lambda (arg)
-   (multiple-value-bind (id str) arg
-     (let ((doc (and (integerp id) (sclang-get-document id))))
+ (lambda (arg)
+   (multiple-value-bind (id str start range) arg
+     (let ((doc (and (integerp id) (sclang-get-document id))) end)
+       (unless doc (lwarn '(sclang) :error
+			  "invalid doc id in _documentPutString handler %S" id))
        (when doc
 	 (with-current-buffer doc
-	 (insert str)
-	 )
-       nil)))))
+	   (setq start (min (+ start 1) (point-max)))
+	   (setq start (max 1 start))
+	   (setq end (if (< range 0) (point-max)
+		       (min (+ start range) (point-max))))
+	   (goto-char start)
+	   (kill-region start end)
+	   (insert str)))
+       nil))))
 
 (sclang-set-command-handler
  '_documentPopTo
- (lambda (arg)
-   (let ((doc (and (integerp arg) (sclang-get-document arg))))
-     (and doc (display-buffer doc)))
+ (lambda (id)
+   (let ((doc (and (integerp id) (sclang-get-document id))))
+     (unless doc (lwarn '(sclang) :error
+			"invalid doc id in _documentPopTo handler %S" id))
+     (when doc (display-buffer doc)))
    nil))
+
+
+(defun sclang-get-bg ()
+  (let ((overlays (overlays-in 1 (point-max)))
+	color
+	overlay)
+    (while (and overlays
+		(not (and (overlay-get overlay 'from-sclang)
+			  (plist-get (overlay-get overlay 'face)
+				     :background))))
+      (setq overlay (pop overlays)))
+    (setq color
+	  (mapcar (lambda (x) (/ x 65535.0))
+		  (color-values
+		   (if overlay
+		       (plist-get (overlay-get overlay 'face)
+				  :background)
+		     (face-attribute 'default :background)))))
+    (format "Color( %s, %s, %s )"
+	    (car color) (cadr color) (caddr color))))
+
+(sclang-set-command-handler
+ '_info
+ (lambda (arg)
+   (let ((doc (and (integerp (car arg)) (sclang-get-document (car arg))))
+	 (specs (cdr arg))
+	 results)
+     (unless doc (lwarn '(sclang) :error
+			"invalid doc id in _info handler %S" (car arg)))
+     (when doc
+       (with-current-buffer doc
+	 (while specs
+	   (cond ((eq (car specs) '_string)
+		  (pop specs)
+		  (let (range-start range-end)
+		    (setq range-start (if (numberp (car specs))
+					  (pop specs)
+					1))
+		    (setq range-end (if (numberp (car specs))
+					(+ (pop specs) range-start)
+				      (point-max)))
+		    (push (buffer-substring-no-properties
+			   range-start range-end)
+			  results)))
+		 ((eq (car specs) '_currentLine)
+		  (pop specs)
+		  (push (sclang-line-at-point) results))
+		 ((eq (car specs) '_currentBlock)
+		  (pop specs)
+		  (push (sclang-defun-at-point) results))
+		 ((eq (car specs) '_currentWord)
+		  (pop specs)
+		  (push (current-word) results))
+		 ((eq (car specs) '_selectedText)
+		  (pop specs)
+		  (push (buffer-substring-no-properties (point) (mark))
+			results))
+		 ((eq (car specs) '_background)
+		  (pop specs)
+		  (push (sclang-get-bg) results))
+		 ((eq (car specs) '_rangeSize)
+		  (pop specs)
+		  (push (if (mark)
+			    (- (region-end) (region-beginning))
+			  0)
+			results))
+		 ((eq (car specs) '_rangeLocation)
+		  (pop specs)
+		  (push (if (mark)
+			    (region-beginning)
+			  -1)
+			results))
+		 ((eq (car specs) '_bounds)
+		  (pop specs)
+		  (if (not (get-buffer-window doc))
+		      (pop-to-buffer doc))
+		  (let ((frame (window-frame (get-buffer-window doc))))
+		    (push (format "Rect( %s, %s, %s, %s )"
+				  (if (consp (frame-parameter frame 'left))
+				      (cadr (frame-parameter frame 'left))
+				    (frame-parameter frame 'left))
+				  (if (consp (frame-parameter frame 'top))
+				      (cadr (frame-parameter frame 'top))
+				    (frame-parameter frame 'top))
+				  (frame-pixel-width frame)
+				  (frame-pixel-height frame))
+			  results)))
+		 (t
+		  (lwarn '(sclang) :warning
+			 "unmatched request in emacs sclang info handler %S"
+			(push (pop specs) results)))))))
+     (if (= (length results) 1)
+	 (car results)
+       (nreverse results)))))
+
+(sclang-set-command-handler
+ '_selectRange
+ (lambda (arg)
+   (multiple-value-bind (id range-start range-size) arg
+     (let ((doc (and (integerp id) (sclang-get-document id)))
+	   (range-end (+ range-start range-size)))
+       (unless doc (lwarn '(sclang) :error
+			  "invalid doc id in _selectRange handler %S" id))
+       (when doc
+	 (switch-to-buffer (get-buffer doc))
+	 (mapc (lambda (sym)
+		 (when (> (symbol-value sym) (point-max))
+		   (set sym (point-max)))
+		 (when (< (symbol-value sym) 1)
+		   (set sym 1)))
+	       '(range-start range-end))
+	 (push-mark range-start t t)
+	 (goto-char range-end)
+	 nil)))))
+
+(sclang-set-command-handler
+ '_selectLine
+ (lambda (arg)
+   (multiple-value-bind (id line) arg
+     (let ((doc (and (integerp id) (sclang-get-document id))))
+       (unless doc (lwarn '(sclang) :error
+			  "invalid doc id in _selectLine handler %S" id))
+       (unless (integerp line)
+	 (lwarn '(sclang) :error "line is not an integer"))
+       (when doc
+	 (switch-to-buffer (get-buffer doc))
+	 (goto-line line)
+	 (push-mark (point) t t)
+	 (goto-line (+ line 1))
+	 (backward-char))
+       nil))))
+
+(sclang-set-command-handler
+ '_bounds_
+ (lambda (arg)
+   (multiple-value-bind (id x y w h) arg
+     (let ((doc (and (integerp id) (sclang-get-document id)))
+	   frame)
+       (unless doc
+	 (lwarn '(sclang) :error
+		"invalid document id from sclang in _bounds_ handler %S" id))
+       (if (not (get-buffer-window doc))
+	   (pop-to-buffer doc))
+       (setq frame (window-frame (get-buffer-window doc)))
+       (set-frame-position frame x y)
+       (set-frame-size frame (ceiling (/ w (frame-char-width frame)))
+		       (ceiling (/ h (frame-char-height frame))))))
+   nil))
+
+(sclang-set-command-handler
+ '_insertText
+ (lambda (arg)
+   (multiple-value-bind (id pos string) arg
+     (let ((doc (and (integerp id) (sclang-get-document id))))
+       (unless doc
+	 (lwarn '(sclang) :error
+		"invalid document id from sclang in _insertText handler %S" id))
+       (with-current-buffer doc
+	 (goto-char pos)
+	 (insert string))))))
+
+(sclang-set-command-handler
+ '_insertTextRange
+ (lambda (arg)
+   (multiple-value-bind (id string start size) arg
+     (let ((doc (and (integerp id) (sclang-get-document id))))
+       (unless doc
+	 (lwarn
+	  '(sclang) :error
+	  "invalid document id from sclang in _insertTextRange handler %S" id))
+       (with-current-buffer doc
+	 (kill-region start (+ start size))
+	 (goto-char start)
+	 (insert string))))))
+
+;; this function is a bit complex: emacs slows down quite a bit when you
+;; have multiple overlays, so we merge and delete overlays whenever possible
+(defun sclang-overlay-range (in-props in-values start end)
+  (let (props values covered overlay existing prop value)
+    (setq start (max 1 start))
+    (setq end (min (point-max) end))
+    (dolist (over (overlays-in start end))
+      (when (and (< start (overlay-start over))
+		 (> end (overlay-end over))
+		 (overlay-get over 'from-sclang))
+	;; full overlap, delete all properties that we are making redundant
+	(setq existing (overlay-get over 'face) props)
+	(while existing
+	  (setq prop (pop existing) value (pop existing))
+	  (when (not (find prop in-props))
+	    (push value props)
+	    (push prop props)))
+	(if props
+	    (overlay-put over 'face props)
+	  ;; and delete the overlay if there are none that are not
+	  (delete-overlay over)))
+      (when (and (= start (overlay-start over))
+		 (= end (overlay-end over)))
+	;; the bounds are identical, so simply merge
+	(setq props in-props values in-values)
+	(while (and props values)
+	  (overlay-put over 'face
+		       (plist-put (overlay-get over 'face) (pop props)
+				  (pop values))))
+	(setq covered t)))
+    (when (not covered)
+      (setq props nil)
+      (while (car in-values)
+	(push (pop in-values) props)
+	(push (pop in-props) props))
+      (setq overlay (make-overlay start end nil nil t))
+      (overlay-put overlay 'from-sclang t)
+      (overlay-put overlay 'face props)))
+  nil)
+
+(sclang-set-command-handler
+ '_background_
+ (lambda (arg)
+   (multiple-value-bind (id r g b) arg
+     (let ((doc (and (integerp id) (sclang-get-document id)))
+	   (color (format "RGB:%02x/%02x/%02x"
+			  (floor (* r 255))
+			  (floor (* g 255))
+			  (floor (* b 255)))))
+       (unless doc
+	 (lwarn '(sclang) :error
+		"invalid document id from sclang in _background_ handler %S"
+		id))
+       (with-current-buffer doc
+	 (sclang-overlay-range '(:background) (list color) 1 (point-max)))))))
+
+(sclang-set-command-handler
+ '_textColor_
+ (lambda (arg)
+   (multiple-value-bind (id r g b range-start range-size) arg
+     (let ((doc (and (integerp id) (sclang-get-document id)))
+	   (color (format "RGB:%02x/%02x/%02x"
+			  (floor (* r 255))
+			  (floor (* g 255))
+			  (floor (* b 255))))
+	   start end)
+       (unless doc
+	 (lwarn '(sclang) :error
+		"invalid document id from sclang in _textColor_ handler %S" id))
+       (with-current-buffer (get-buffer doc)
+	 (setq start (min (+ range-start range-size) range-start))
+	 (setq end (if (= range-size 0) (point-max)
+		     (max start (+ start range-size))))
+	 (sclang-overlay-range '(:foreground) (list color) start end))))))
+
+(sclang-set-command-handler
+ '_font_
+ (lambda (arg)
+  (multiple-value-bind (id start extent family height weight slant
+			   overline underline strikethrough box) arg
+    (let ((doc (and (integerp id) (sclang-get-document id)))
+	  (allattrs '(:family :height :weight :slant :overline :underline
+			      :strikethrough :box))
+	  attrs
+	  props)
+      (unless doc
+	(lwarn '(sclang) :error
+	       "invalid document id from sclang in _font_ handler %S" id))
+      (dolist (prop  (list family height
+			   (when weight (read weight))
+			   (when slant (read slant))
+			   overline underline strikethrough box))
+	(if (not prop)
+	    (pop allattrs)
+	  (push prop props)
+	  (push (pop allattrs) attrs)))
+      (with-current-buffer doc
+	(sclang-overlay-range attrs props
+			      (min start (+ start extent))
+			      (max start (+ start extent))))))))
+
+
+(sclang-set-command-handler
+ '_documentSyntaxColorize
+ (lambda (arg)
+   (multiple-value-bind (id range-start range-size) arg
+     (let ((doc (and (integerp id) (sclang-get-document id)))
+	   start
+	   end)
+       (unless doc
+	 (lwarn '(sclang) :error
+	  "invalid document id in _documentSyntaxColorize handler %S" id))
+       (save-excursion
+	 (with-current-buffer (get-buffer doc)
+	   (setq start (min (point-max) (max 1 range-start)))
+	   (setq end (if (= range-size 0) (point-max)
+		       (min (+ start range-size) (point-max))))
+	   (mapc (lambda (x)
+		   (when (and (overlay-get x 'from-sclang)
+			      (plist-get (overlay-get x 'face) :foreground))
+		     ;; this fully overlaps that -> alter it
+		     (if (and (>= (overlay-start x) start)
+			      (<= (overlay-end x) end))
+			 (overlay-put x 'face
+				      (plist-put (overlay-get x 'face)
+						 :foreground nil))
+		       ;; this is fully overlapped by that -> split it
+		       (if (and (< (overlay-start x) start)
+				(> (overlay-end x) end))
+			   (let ((new-overlay
+				  (make-overlay (overlay-start x) start 
+						nil nil t))
+				 (props (overlay-properties x)))
+			     (while props
+			       (overlay-put new-overlay (car props)
+					    (cadr props))
+			       (setq props (cddr props)))
+			     (move-overlay x end (overlay-end x)))
+			 (if (< (overlay-start x) start)
+			     ;; this is overlapped at start -> move its end
+			     (move-overlay x (overlay-start x) start)
+			   ;; this is overlapped at end -> move its start
+			   (move-overlay x end (overlay-end x)))))))
+		 (overlays-in start end))
+	   (font-lock-fontify-region start end)))))))
 
 ;; =====================================================================
 ;; sclang-mode
