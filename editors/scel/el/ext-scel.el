@@ -127,7 +127,7 @@ For reading or modifying the string from sclang, use the variable sclang-reply-s
 	(setq sclang-callback-stack (assq-delete-all key sclang-callback-stack))
 	(sclang-apply-any-hooks-rec (substring string next-start) result))))))
 
-(defcustom sclang-collapse t
+(defcustom sclang-collapse nil
   "If non-nil, collapse some messages to a single expandable widget"
   :group 'sclang-interface
   :type 'boolean)
