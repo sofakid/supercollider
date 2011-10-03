@@ -50,6 +50,7 @@ ScelDocument : Document{
 		path_p = path;
 		title_p = path;
 		EmacsDocument.prNewFromPath(
+			path_p,
 			selectionStart, selectionLength,
 			{ |doc|
 				thisdoc = doc;
