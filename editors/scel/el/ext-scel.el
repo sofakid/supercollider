@@ -345,7 +345,9 @@ black background"
 		   (read classes))))
 	     (when (> (length chosen-class) 0)
 	       (sclang-get-method-args ,method chosen-class #',function)))))
-      (sclang-get-method-args method class function))))
+      ; hjh - concat: if the class was passed in, then this is for a method call
+      ; like Array.fill(), where we should get the args for the metaclass
+      (sclang-get-method-args method (concat "Meta_" class) function))))
 
 (defun sclang-insert-method-args (&optional method class)
   (interactive)
@@ -354,12 +356,15 @@ black background"
     (while (not (or method (= (point) 1)))
       (backward-char)
       (setq method (sclang-symbol-at-point)))
-    (forward-word)
+
+;; forward-word should run only if we are in the middle of the identifier
+;; i.e., if the point is less than the ending-bound of the symbol-at-point
+    (if (< (point) (cdr (bounds-of-thing-at-point 'symbol))) (forward-word))
     (let ((buff (current-buffer))
 	  (pt (point))
 	  classname)
       (backward-char)
-      (search-backward ".")
+      (search-backward "." nil t)
       (backward-char)
       (let ((case-fold-search nil))
 	(when (and (sclang-symbol-at-point)
