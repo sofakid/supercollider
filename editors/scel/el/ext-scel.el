@@ -331,8 +331,20 @@ black background"
 (defun sclang-with-method-args (method function &optional class)
   (let ((get-classes-string
 	 (format
-	  (concat "var di=[];Class.allClasses.do{|c|if(c.findRespondingMethodFor('%s').notNil"
-		  ",{di=di.add(c.asString)})};di")
+	"var	list = List.new,
+		recursion = { |class, list|
+			if(class.methods.asArray.any({ |method| method.name == '%s' })) {
+				list.add(class.asString);
+				list.addAll(class.allSubclasses.collect(_.asString));
+			} {
+				class.subclasses.do { |cl|
+					recursion.value(cl, list);
+				};
+			};
+		};
+	recursion.value(Object, list);
+	recursion.value(Meta_Object, list);
+	list.asArray"
 	  method)))
     (if (not class)
 	(sclang-eval-string-with-hook
