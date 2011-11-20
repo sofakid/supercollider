@@ -243,17 +243,6 @@ Node {
 // common base for Group and ParGroup classes
 AbstractGroup : Node {
 
-	/** immediately sends **/
-	*new { arg target, addAction=\addToHead;
-		var group, server, addNum, inTarget;
-		inTarget = target.asTarget;
-		server = inTarget.server;
-		group = this.basicNew(server);
-		addNum = addActions[addAction];
-		if((addNum < 2), { group.group = inTarget; }, { group.group = inTarget.group; });
-		server.sendMsg(this.creationCmd, group.nodeID, addNum, inTarget.nodeID);
-		^group
-	}
 	newMsg { arg target, addAction = \addToHead;
 		var addNum, inTarget;
 		// if target is nil set to default group of server specified when basicNew was called
@@ -406,7 +395,21 @@ AbstractGroup : Node {
 //	}
 }
 
-Group : AbstractGroup {
+AbstractNormalGroup : AbstractGroup {
+		/** immediately sends **/
+	*new { arg target, addAction=\addToHead;
+		var group, server, addNum, inTarget;
+		inTarget = target.asTarget;
+		server = inTarget.server;
+		group = this.basicNew(server);
+		addNum = addActions[addAction];
+		if((addNum < 2), { group.group = inTarget; }, { group.group = inTarget.group; });
+		server.sendMsg(this.creationCmd, group.nodeID, addNum, inTarget.nodeID);
+		^group
+	}
+}
+
+Group : AbstractNormalGroup {
 	*creationCmd { ^21 }	//"/g_new"
 }
 
@@ -555,6 +558,6 @@ RootNode : Group {
 	}
 }
 
-ParGroup : AbstractGroup {
+ParGroup : AbstractNormalGroup {
 	*creationCmd { ^63 }	//"/p_new"
 }
