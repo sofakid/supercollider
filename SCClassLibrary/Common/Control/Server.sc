@@ -211,7 +211,7 @@ Server {
 	var <sampleRate, <actualSampleRate;
 
 	var alive = false, booting = false, aliveThread, <>aliveThreadPeriod = 0.7, statusWatcher;
-	var <>tree;
+	var <>tree, <>defaultGroup;
 
 	var <window, <>scopeWindow;
 	var <emacsbuf;
@@ -254,7 +254,11 @@ Server {
 
 	initTree {
 		nodeAllocator = NodeIDAllocator(clientID, options.initialNodeID);
-		this.sendMsg("/g_new", 1, 0, 0);
+		defaultGroup ?? {
+			defaultGroup = RecurringGroup.basicNew(this, 1)
+				.init(RootNode(this), \addToTail)
+				.createNode;
+		};
 		tree.value(this);
 		ServerTree.run(this);
 	}
@@ -901,7 +905,7 @@ Server {
 		};
 	}
 
-	defaultGroup { ^Group.basicNew(this, 1) }
+	// defaultGroup { ^RecurringGroup.basicNew(this, 1).prSetRecurVarsForDefaultGroup }
 
 	queryAllNodes { arg queryControls = false;
 		var resp, done = false;
