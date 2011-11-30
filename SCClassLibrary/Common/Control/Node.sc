@@ -248,7 +248,7 @@ AbstractGroup : Node {
 		// if target is nil set to default group of server specified when basicNew was called
 		inTarget = (target ? server.defaultGroup).asTarget;
 		addNum = addActions[addAction];
-		(addNum < 2).if({ group = inTarget; }, { group = inTarget.group; });
+		if(addNum < 2) { group = inTarget } { group = inTarget.group };
 		^[this.class.creationCmd, nodeID, addNum, inTarget.nodeID]
 	}
 
@@ -370,10 +370,10 @@ AbstractGroup : Node {
 		}, '/g_queryTree.reply', server.addr).oneShot;
 		server.sendMsg("/g_queryTree", nodeID);
 		SystemClock.sched(3, {
-			done.not.if({
+			if(done.not) {
 				resp.free;
 				"Server failed to respond to Group:queryTree!".warn;
-			});
+			};
 		});
 	}
 
@@ -403,7 +403,11 @@ AbstractNormalGroup : AbstractGroup {
 		server = inTarget.server;
 		group = this.basicNew(server);
 		addNum = addActions[addAction];
-		if((addNum < 2), { group.group = inTarget; }, { group.group = inTarget.group; });
+		if(addNum < 2) {
+			group.group = inTarget;
+		} {
+			group.group = inTarget.group
+		};
 		server.sendMsg(this.creationCmd, group.nodeID, addNum, inTarget.nodeID);
 		^group
 	}
@@ -425,10 +429,7 @@ Synth : Node {
 		addNum = addActions[addAction];
 		synth = this.basicNew(defName, server);
 
-		if((addNum < 2), { synth.group = inTarget; }, { synth.group = inTarget.group; });
-//		server.sendMsg(59, //"s_newargs"
-//			defName, synth.nodeID, addNum, inTarget.nodeID,
-//			*Node.setnMsgArgs(*args));
+		if(addNum < 2) { synth.group = inTarget } { synth.group = inTarget.group };
 		server.sendMsg(9, //"s_new"
 			defName, synth.nodeID, addNum, inTarget.nodeID,
 			*(args.asOSCArgArray)
@@ -441,7 +442,7 @@ Synth : Node {
 		server = inTarget.server;
 		addNum = addActions[addAction];
 		synth = this.basicNew(defName, server);
-		if((addNum < 2), { synth.group = inTarget; }, { synth.group = inTarget.group; });
+		if(addNum < 2) { synth.group = inTarget } { synth.group = inTarget.group };
 		server.sendBundle(nil, [9, defName, synth.nodeID, addNum, inTarget.nodeID] ++
 			args.asOSCArgArray, [12, synth.nodeID, 0]); // "s_new" + "/n_run"
 		^synth
@@ -456,7 +457,7 @@ Synth : Node {
 		addNum = addActions[addAction];
 		// if target is nil set to default group of server specified when basicNew was called
 		inTarget = (target ? server.defaultGroup).asTarget;
-		(addNum < 2).if({ group = inTarget; }, { group = inTarget.group; });
+		if(addNum < 2) { this.group = inTarget } { this.group = inTarget.group };
 		^[9, defName, nodeID, addNum, inTarget.nodeID] ++ args.asOSCArgArray; //"/s_new"
 	}
 	*after { arg aNode, defName, args;
