@@ -1,28 +1,29 @@
 Plot {
 
-	var <>plotter, <value, <>spec, <>domainSpec;
-	var <bounds, <plotBounds;
-	var <>font, <>fontColor, <>gridColorX, <>gridColorY, <>plotColor, <>backgroundColor;
-	var	<>gridLinePattern, <>gridLineSmoothing;
-	var <>gridOnX = true, <>gridOnY = true, <>labelX, <>labelY;
+	var <>plotter, <value;
+	var <bounds, <plotBounds,<grid;
+
+	var <spec, <domainSpec;
+	var <font, <fontColor, <gridColorX, <gridColorY, <>plotColor, <>backgroundColor;
+	var <gridOnX = true, <gridOnY = true, <>labelX, <>labelY;
 
 	var valueCache;
 
 	*initClass {
 		StartUp.add {
-				GUI.skin.put(\plot, (
-					gridColorX: Color.grey(0.7),
-					gridColorY: Color.grey(0.7),
-					fontColor: Color.grey(0.3),
-					plotColor: [Color.black, Color.blue, Color.red, Color.green(0.7)],
-					background: Color.new255(235, 235, 235),
-					gridLinePattern: nil,
-					gridLineSmoothing: false,
-					labelX: "",
-					labelY: "",
-					expertMode: false,
-					gridFont: Font( Font.defaultSansFace, 9 )
-				));
+			GUI.skin.put(\plot, (
+				gridColorX: Color.grey(0.7),
+				gridColorY: Color.grey(0.7),
+				fontColor: Color.grey(0.3),
+				plotColor: [Color.black, Color.blue, Color.red, Color.green(0.7)],
+				background: Color.new255(235, 235, 235),
+				gridLinePattern: nil,
+				gridLineSmoothing: false,
+				labelX: "",
+				labelY: "",
+				expertMode: false,
+				gridFont: Font( Font.defaultSansFace, 9 )
+			));
 		}
 	}
 
@@ -33,16 +34,18 @@ Plot {
 	init {
 		var skin = GUI.skin.at(\plot);
 
+		grid = DrawGrid(bounds ? Rect(0,0,1,1),nil,nil);
 		skin.use {
 			font = ~gridFont ?? { Font.default };
 			if(font.class != GUI.font) { font = Font(font.name, font.size) };
-			gridColorX = ~gridColorX;
-			gridColorY = ~gridColorY;
+			this.font = font;
+			this.gridColorX = ~gridColorX;
+			this.gridColorY = ~gridColorY;
 			plotColor = ~plotColor;
-			fontColor = ~fontColor;
+			this.fontColor = ~fontColor;
 			backgroundColor = ~background;
-			gridLineSmoothing = ~gridLineSmoothing;
-			gridLinePattern = ~gridLinePattern !? {~gridLinePattern.as(FloatArray)};
+			this.gridLineSmoothing = ~gridLineSmoothing;
+			this.gridLinePattern = ~gridLinePattern !? {~gridLinePattern.as(FloatArray)};
 			labelX = ~labelX;
 			labelY = ~labelY;
 		};
@@ -53,18 +56,63 @@ Plot {
 		plotBounds = if(rect.height > 40) { rect.insetBy(size, size) } { rect };
 		bounds = rect;
 		valueCache = nil;
+		grid.bounds = plotBounds;
 	}
 
 	value_ { |array|
 		value = array;
 		valueCache = nil;
 	}
-
+	spec_ { |sp|
+		spec = sp;
+		if(gridOnY and: spec.notNil,{		
+			grid.vertGrid = spec.grid;
+		},{
+			grid.vertGrid = nil
+		})
+	}
+	domainSpec_ { |sp|
+		domainSpec = sp;
+		if(gridOnX and: domainSpec.notNil,{		
+			grid.horzGrid = domainSpec.grid;
+		},{
+			grid.horzGrid = nil
+		})
+	}
+	gridColorX_ { |c|
+		grid.x.gridColor = c;
+		gridColorX = c;
+	}	
+	gridColorY_ { |c|
+		grid.y.gridColor = c;
+		gridColorY = c;
+	}
+	font_ { |f|
+		font = f;
+		grid.font = f;
+	}
+	fontColor_ { |c|
+		fontColor = c;
+		grid.fontColor = c;
+	}
+	gridLineSmoothing_ { |bool|
+		grid.smoothing = bool;
+	}
+	gridLinePattern_ { |pattern|
+		grid.linePattern = pattern;
+	}
+	gridOnX_ { |bool|
+		gridOnX = bool;
+		grid.horzGrid = if(gridOnX,{domainSpec.grid},{nil});
+	}
+	gridOnY_ { |bool|
+		gridOnY= bool;
+		grid.vertGrid = if(gridOnY,{spec.grid},{nil});
+	}
 
 	draw {
 		this.drawBackground;
-		if(gridOnX) { this.drawGridX; this.drawNumbersX; };
-		if(gridOnY) { this.drawGridY; this.drawNumbersY; };
+		grid.draw;
 		this.drawLabels;
 		this.drawData;
 		plotter.drawFunc.value(this); // additional elements
@@ -76,61 +124,7 @@ Plot {
 		Pen.fill;
 	}
 
-	drawGridX {
-
-		var top = plotBounds.top;
-		var base = plotBounds.bottom;
-
-		this.drawOnGridX { |hpos|
-			Pen.moveTo(hpos @ base);
-			Pen.lineTo(hpos @ top);
-		};
-
-		Pen.strokeColor = gridColorX;
-		this.prStrokeGrid;
-
-	}
-
-	drawGridY {
-
-		var left = plotBounds.left;
-		var right = plotBounds.right;
-
-		this.drawOnGridY { |vpos|
-			Pen.moveTo(left @ vpos);
-			Pen.lineTo(right @ vpos);
-		};
-
-		Pen.strokeColor = gridColorY;
-		this.prStrokeGrid;
-
-	}
-
-	drawNumbersX {
-		var top = plotBounds.top;
-		var base = plotBounds.bottom;
-		Pen.fillColor = fontColor;
-		Pen.font = font;
-		this.drawOnGridX { |hpos, val, i|
-			var string = val.asStringPrec(5) ++ domainSpec.units;
-			Pen.stringAtPoint(string, hpos @ base);
-		};
-	}
-
-	drawNumbersY {
-		var left = plotBounds.left;
-		var right = plotBounds.right;
-		Pen.fillColor = fontColor;
-		Pen.font = font;
-		this.drawOnGridY { |vpos, val, i|
-			var string = val.asStringPrec(5).asString ++ spec.units;
-			if(gridOnX.not or: { i > 0 }) {
-				Pen.stringAtPoint(string, left @ vpos);
-			}
-		};
-	}
-
-
+	/*
 	drawOnGridX { |func|
 
 		var width = plotBounds.width;
@@ -153,7 +147,6 @@ Plot {
 			func.value(hpos, val, i);
 		};
 	}
-
 	drawOnGridY { |func|
 
 		var base = plotBounds.bottom;
@@ -170,7 +163,8 @@ Plot {
 		};
 
 	}
-
+	*/
+	
 	drawLabels {
 		var sbounds;
 		if(gridOnX and: { labelX.notNil }) {
@@ -190,7 +184,6 @@ Plot {
 			)
 		};
 	}
-
 
 	domainCoordinates { |size|
 		var val = this.resampledDomainSpec.unmap(plotter.domain ?? { (0..size-1) });
@@ -212,7 +205,6 @@ Plot {
 	}
 
 	drawData {
-
 		var mode = plotter.plotMode;
 		var ycoord = this.dataCoordinates;
 		var xcoord = this.domainCoordinates(ycoord.size);
@@ -235,7 +227,6 @@ Plot {
 			Pen.stroke;
 		};
 		Pen.joinStyle = 0;
-
 	}
 
 	// modes
@@ -284,7 +275,6 @@ Plot {
 	}
 
 	// editing
-
 
 	editDataIndex { |index, x, y, plotIndex|
 		// WARNING: assuming index is in range!
@@ -382,15 +372,12 @@ Plot {
 		^[index, value.at(index)]
 	}
 
-	// settings
-
 	zoomFont { |val|
 		font = font.copy;
 		font.size = max(1, font.size + val);
+		this.font = font;
+		grid.clearCache;
 	}
-
-
-	// private implementation
 
 	prResampValues {
 		^if(value.size <= (plotBounds.width / plotter.resolution)) {
@@ -399,20 +386,6 @@ Plot {
 			valueCache ?? { valueCache = value.resamp1(plotBounds.width / plotter.resolution) }
 		}
 	}
-
-	prStrokeGrid {
-		Pen.push;
-
-		Pen.width = 1;
-		try {
-			Pen.smoothing_(gridLineSmoothing);
-			if(gridLinePattern.notNil) {Pen.lineDash_(gridLinePattern)};
-		};
-		Pen.stroke;
-
-		Pen.pop;
-	}
-
 }
 
 
@@ -579,7 +552,6 @@ Plotter {
 		.action_ { this.class.openHelpFile };
 	}
 
-
 	value_ { |arrays|
 		this.setValue(arrays, findSpecs, true)
 	}
@@ -588,8 +560,8 @@ Plotter {
 		value = arrays;
 		data = this.prReshape(arrays);
 		if(findSpecs) {
-				this.calcSpecs;
-				this.calcDomainSpecs;
+			this.calcSpecs;
+			this.calcDomainSpecs;
 		};
 		this.updatePlotSpecs;
 		this.updatePlots;
@@ -625,7 +597,6 @@ Plotter {
 	}
 
 	// subviews
-
 	updatePlotBounds {
 		var deltaY = if(data.size > 1 ) { 4.0 } { 0.0 };
 		var distY = bounds.height / data.size;
@@ -680,7 +651,6 @@ Plotter {
 	}
 
 	// specs
-
 	specs_ { |argSpecs|
 		specs = argSpecs.asArray.clipExtend(data.size).collect(_.asSpec);
 		this.updatePlotSpecs;
@@ -703,37 +673,33 @@ Plotter {
 		this.updatePlotSpecs;
 	}
 
-
 	calcSpecs { |separately = true|
 		specs = (specs ? [\unipolar.asSpec]).clipExtend(data.size);
 		if(separately) {
 			this.specs = specs.collect { |spec, i|
 				var list = data.at(i);
-				list !? { spec = spec.calcRange(list.flat).roundRange };
+				list !? { spec = spec.looseRange(list.flat) };
 			}
 		} {
-			this.specs = specs.first.calcRange(data.flat).roundRange;
+			this.specs = specs.first.looseRange(data.flat);
 		}
 	}
-
 
 	calcDomainSpecs {
 		// for now, a simple version
 		domainSpecs = data.collect { |val|
-				[0, val.size - 1, \lin, 1].asSpec
+			[0, val.size - 1, \lin, 1].asSpec
 		}
 	}
 
 
 	// interaction
-
-
 	pointIsInWhichPlot { |point|
 		var res = plots.detectIndex { |plot|
 			point.y.exclusivelyBetween(plot.bounds.top, plot.bounds.bottom)
 		};
 		^res ?? {
-				if(point.y < bounds.center.y) { 0 } { plots.size - 1 }
+			if(point.y < bounds.center.y) { 0 } { plots.size - 1 }
 		}
 	}
 
@@ -759,8 +725,6 @@ Plotter {
 		parent !? { parent.refresh }
 	}
 
-	// private implementation
-
 	prReshape { |item|
 		var size, array = item.asArray;
 		if(item.first.isSequenceableCollection.not) {
@@ -773,9 +737,6 @@ Plotter {
 			^array.collect { |x| x.asArray.clipExtend(size) }.flop.bubble		};
 		^array
 	}
-
-
-
 }
 
 

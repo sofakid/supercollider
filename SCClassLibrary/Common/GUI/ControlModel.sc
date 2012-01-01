@@ -35,12 +35,12 @@ Spec {
 }
 
 ControlSpec : Spec {
-	var <minval, <maxval, <warp, <step, <>default, <>units;
+	var <minval, <maxval, <warp, <step, <>default, <>units, >grid;
 	var <clipLo, <clipHi;
 
-	*new { arg minval=0.0, maxval=1.0, warp='lin', step=0.0, default, units;
+	*new { arg minval=0.0, maxval=1.0, warp='lin', step=0.0, default, units, grid;
 		^super.newCopyArgs(minval, maxval, warp, step,
-				default ? minval, units ? ""
+				default ? minval, units ? "", grid
 			).init
 	}
 
@@ -107,6 +107,21 @@ ControlSpec : Spec {
 		^numStep
 	}
 
+	grid { ^grid ?? {Grid(this)} }
+	
+	looseRange { |data, defaultRange = 1.0|
+		var newMin, newMax;
+		data = data.flat;
+		newMin = data.minItem;
+		newMax = data.maxItem;
+		if(newMin == newMax) {
+			newMin = newMin - (defaultRange / 2);
+			newMax = newMax + (defaultRange / 2);
+		};
+		# newMin, newMax = this.grid.looseRange(newMin,newMax);
+		^this.copy.minval_(newMin).maxval_(newMax);
+	}				
+	// can deprec
 	calcRange { |data, defaultRange = 1.0|
 		var newMin, newMax;
 		data = data.flat;
@@ -123,7 +138,7 @@ ControlSpec : Spec {
 		if(min.isNil) { min = if(this.hasZeroCrossing) { -1.0 } { 0.0 } };		if(max.isNil) { max = 1.0 };
 		^this.copy.minval_(min).maxval_(max)
 	}
-
+	// can deprec
 	roundRange { |base = 10|
 		var extent = absdif(minval, maxval);
 		var r = 10 ** ((log10(extent) * log10(base)).trunc - 1);
@@ -137,10 +152,7 @@ ControlSpec : Spec {
 		var low = if(min.notNil) { this.unmap(min) } { 0.0 };
 		var high = if(max.notNil) { this.unmap(max) } { 1.0 };
 		if(n < 1) { ^[] };
-		val = this.map((0..n-1).normalize(low, high));
-		exp = log10(this.map(0.5).abs) * log10(base);
-		val = val.round(base ** (exp.trunc - 1));
-		^val.as(Set).as(Array).sort
+		^this.grid.getParams(low,high,numTicks:n).at('lines')
 	}
 
 	zoom { |ratio = 1|
