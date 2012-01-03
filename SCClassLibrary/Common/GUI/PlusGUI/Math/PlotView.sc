@@ -1,7 +1,7 @@
 Plot {
 
 	var <>plotter, <value;
-	var <bounds, <plotBounds,<grid;
+	var <bounds, <plotBounds,<>drawGrid;
 
 	var <spec, <domainSpec;
 	var <font, <fontColor, <gridColorX, <gridColorY, <>plotColor, <>backgroundColor;
@@ -34,7 +34,9 @@ Plot {
 	init {
 		var skin = GUI.skin.at(\plot);
 
-		grid = DrawGrid(bounds ? Rect(0,0,1,1),nil,nil);
+		drawGrid = DrawGrid(bounds ? Rect(0,0,1,1),nil,nil);
+		drawGrid.x.labelOffset = Point(0,4);
+		drawGrid.y.labelOffset = Point(-10,0);
 		skin.use {
 			font = ~gridFont ?? { Font.default };
 			if(font.class != GUI.font) { font = Font(font.name, font.size) };
@@ -56,7 +58,7 @@ Plot {
 		plotBounds = if(rect.height > 40) { rect.insetBy(size, size) } { rect };
 		bounds = rect;
 		valueCache = nil;
-		grid.bounds = plotBounds;
+		drawGrid.bounds = plotBounds;
 	}
 
 	value_ { |array|
@@ -66,53 +68,53 @@ Plot {
 	spec_ { |sp|
 		spec = sp;
 		if(gridOnY and: spec.notNil,{		
-			grid.vertGrid = spec.grid;
+			drawGrid.vertGrid = spec.grid;
 		},{
-			grid.vertGrid = nil
+			drawGrid.vertGrid = nil
 		})
 	}
 	domainSpec_ { |sp|
 		domainSpec = sp;
 		if(gridOnX and: domainSpec.notNil,{		
-			grid.horzGrid = domainSpec.grid;
+			drawGrid.horzGrid = domainSpec.grid;
 		},{
-			grid.horzGrid = nil
+			drawGrid.horzGrid = nil
 		})
 	}
 	gridColorX_ { |c|
-		grid.x.gridColor = c;
+		drawGrid.x.gridColor = c;
 		gridColorX = c;
 	}	
 	gridColorY_ { |c|
-		grid.y.gridColor = c;
+		drawGrid.y.gridColor = c;
 		gridColorY = c;
 	}
 	font_ { |f|
 		font = f;
-		grid.font = f;
+		drawGrid.font = f;
 	}
 	fontColor_ { |c|
 		fontColor = c;
-		grid.fontColor = c;
+		drawGrid.fontColor = c;
 	}
 	gridLineSmoothing_ { |bool|
-		grid.smoothing = bool;
+		drawGrid.smoothing = bool;
 	}
 	gridLinePattern_ { |pattern|
-		grid.linePattern = pattern;
+		drawGrid.linePattern = pattern;
 	}
 	gridOnX_ { |bool|
 		gridOnX = bool;
-		grid.horzGrid = if(gridOnX,{domainSpec.grid},{nil});
+		drawGrid.horzGrid = if(gridOnX,{domainSpec.grid},{nil});
 	}
 	gridOnY_ { |bool|
 		gridOnY= bool;
-		grid.vertGrid = if(gridOnY,{spec.grid},{nil});
+		drawGrid.vertGrid = if(gridOnY,{spec.grid},{nil});
 	}
 
 	draw {
 		this.drawBackground;
-		grid.draw;
+		drawGrid.draw;
 		this.drawLabels;
 		this.drawData;
 		plotter.drawFunc.value(this); // additional elements
@@ -124,47 +126,6 @@ Plot {
 		Pen.fill;
 	}
 
-	/*
-	drawOnGridX { |func|
-
-		var width = plotBounds.width;
-		var left = plotBounds.left;
-		var n, gridValues;
-		var xspec = domainSpec;
-		if(this.hasSteplikeDisplay) {
-			// special treatment of special case: lines need more space
-			xspec = xspec.copy.maxval_(xspec.maxval * value.size / (value.size - 1))
-		};
-		n = (plotBounds.width / 64).round(2);
-		if(xspec.hasZeroCrossing) { n = n + 1 };
-
-		gridValues = xspec.gridValues(n);
-		if(gridOnY) { gridValues = gridValues.drop(1) };
-		gridValues = gridValues.drop(-1);
-
-		gridValues.do { |val, i|
-			var hpos = left + (xspec.unmap(val) * width);
-			func.value(hpos, val, i);
-		};
-	}
-	drawOnGridY { |func|
-
-		var base = plotBounds.bottom;
-		var height = plotBounds.height.neg; // measures from top left
-		var n, gridValues;
-
-		n = (plotBounds.height / 32).round(2);
-		if(spec.hasZeroCrossing) { n = n + 1 };
-		gridValues = spec.gridValues(n);
-
-		gridValues.do { |val, i|
-			var vpos = base + (spec.unmap(val) * height);
-			func.value(vpos, val, i);
-		};
-
-	}
-	*/
-	
 	drawLabels {
 		var sbounds;
 		if(gridOnX and: { labelX.notNil }) {
@@ -376,9 +337,11 @@ Plot {
 		font = font.copy;
 		font.size = max(1, font.size + val);
 		this.font = font;
-		grid.clearCache;
+		drawGrid.clearCache;
 	}
-
+	copy {
+		^super.copy.drawGrid_(drawGrid.copy)
+	}
 	prResampValues {
 		^if(value.size <= (plotBounds.width / plotter.resolution)) {
 			value
@@ -422,7 +385,6 @@ Plotter {
 			bounds = bounds ?? { parent.bounds.moveTo(0, 0) };
 			interactionView = UserView(parent, bounds);
 			interactionView.drawFunc = { this.draw };
-
 		};
 		modes = [\points, \levels, \linear, \plines, \steps].iter.loop;
 
@@ -585,8 +547,12 @@ Plotter {
 	}
 
 	draw {
-		bounds = this.drawBounds;
-		this.updatePlotBounds;
+		var b;
+		b = this.drawBounds;
+		if(b != bounds) {
+			bounds = b;
+			this.updatePlotBounds;
+		};
 		Pen.use {
 			plots.do { |plot| plot.draw };
 		}
@@ -617,7 +583,6 @@ Plotter {
 
 		this.updatePlotSpecs;
 		this.updatePlotBounds;
-
 	}
 
 	updatePlots {

@@ -2,7 +2,7 @@
 
 DrawGrid {
 	
-	var <bounds,<x,<y;
+	var <bounds,<>x,<>y;
 	var <>opacity=0.7,<>smoothing=false,<>linePattern;
 	var pen;
 	
@@ -27,8 +27,8 @@ DrawGrid {
 	init { arg bounds,h,v;
 		var w;
 		pen = GUI.pen;
-		x = DrawGridX(h.asGrid);
-		y = DrawGridY(v.asGrid);
+		x = DrawGridX(h);
+		y = DrawGridY(v);
 		this.bounds = bounds;
 		this.font = Font( Font.defaultSansFace, 9 );
 		this.fontColor = Color.grey(0.3);
@@ -61,10 +61,13 @@ DrawGrid {
 		y.gridColor = colors[1];
 	}
 	horzGrid_ { arg g;
-		this.init(bounds,g,y.grid)
+		x.grid = g;
 	}
 	vertGrid_ { arg g;
-		this.init(bounds,x.grid,g)
+		y.grid = g;
+	}
+	copy {
+		^DrawGrid(bounds,x.grid,y.grid).x_(x.copy).y_(y.copy).opacity_(opacity).smoothing_(smoothing).linePattern_(linePattern)
 	}
 	clearCache {
 		x.clearCache;
@@ -87,6 +90,11 @@ DrawGridX {
 		range = [grid.spec.minval, grid.spec.maxval]; 
 		labelOffset = 4 @ -10;
 	}
+	grid_ { arg g;
+		grid = g.asGrid;
+		range = [grid.spec.minval, grid.spec.maxval]; 
+		this.clearCache;
+	}		
 	setZoom { arg min,max;
 		range = [min,max];
 	}
@@ -106,7 +114,7 @@ DrawGridX {
 				commands = commands.add( ['line', Point( x, bounds.top), Point(x,bounds.bottom) ] );
 				commands = commands.add( ['stroke' ] );
 			};
-			if(bounds.height >= 12	,{
+			if(bounds.width >= 12	,{
 				commands = commands.add(['font_',font ] );
 				commands = commands.add(['color_',fontColor ] );
 				p['labels'].do { arg val;
@@ -126,6 +134,7 @@ DrawGridX {
 		}
 	}
 	clearCache { cacheKey = nil; }
+	copy { ^super.copy.clearCache }
 }
 
 
@@ -151,22 +160,19 @@ DrawGridY : DrawGridX {
 				commands = commands.add( ['line', Point( bounds.left,y), Point(bounds.right,y) ] );
 				commands = commands.add( ['stroke' ] );
 			};
-			if(bounds.width >= 20	,{
+			if(bounds.height >= 20	,{
 				commands = commands.add(['font_',font ] );
 				commands = commands.add(['color_',fontColor ] );
 				p['labels'].do { arg val,i;
 					var y;
-					//if(i != 0 or: {labelOffset.x < 0},{ // drop first one if labels are inside plot area
-						// value, label, [color, font]
-						y = val[0].linlin(range[0],range[1],bounds.bottom,bounds.top);
-						if(val[2].notNil,{
-							commands = commands.add( ['color_',val[2] ] );
-						});
-						if(val[3].notNil,{
-							commands = commands.add( ['font_',val[3] ] );
-						});						
-						commands = commands.add( ['stringAtPoint', val[1].asString, Point(bounds.left, y) + labelOffset ] );
-					//});
+					y = val[0].linlin(range[0],range[1],bounds.bottom,bounds.top);
+					if(val[2].notNil,{
+						commands = commands.add( ['color_',val[2] ] );
+					});
+					if(val[3].notNil,{
+						commands = commands.add( ['font_',val[3] ] );
+					});						
+					commands = commands.add( ['stringAtPoint', val[1].asString, Point(bounds.left, y) + labelOffset ] );
 				}
 			});
 			commands
@@ -188,7 +194,7 @@ Grid {
 	
 	asGrid { ^this }
 	niceNum { arg val,round;
-		// http://books.google.de/books?id=fvA7zLEFWZgC&pg=PA61&lpg=PA61&redir_esc=y#v=onepage&q&f=false
+		// http://books.google.de/books?id=fvA7zLEFWZgC&pg=PA61&lpg=PA61
 		var exp,f,nf,rf;
 		exp = floor(log10(val));
 		f = val / 10.pow(exp);
@@ -230,24 +236,31 @@ Grid {
 		^this.ideals(min,max).at( [ 0,1] )
 	}
 	getParams { |valueMin,valueMax,pixelMin,pixelMax,numTicks|
-		var majors,p;
+		var lines,p,pixRange;
 		var nfrac,d,graphmin,graphmax,range;
-		# graphmin,graphmax,nfrac,d = this.ideals(valueMin,valueMax,numTicks ?? {(pixelMax - pixelMin).asInteger div: 50});
-		majors = [];
+		pixRange = pixelMax - pixelMin;
+		if(numTicks.isNil,{
+			numTicks = (pixRange / 64);
+			numTicks = numTicks.max(3).round(1);
+		});
+		# graphmin,graphmax,nfrac,d = this.ideals(valueMin,valueMax,numTicks);
+		lines = [];
 		if(d != inf,{
 			forBy(graphmin,graphmax + (0.5*d),d,{ arg tick;
 				if(tick.inclusivelyBetween(valueMin,valueMax),{
-					majors = majors.add( tick );
+					lines = lines.add( tick );
 				})
 			});
 		});
 		p = ();
-		p['lines'] = majors;
-		p['labels'] = majors.collect({ arg val; [val, this.formatLabel(val,nfrac) ] });
+		p['lines'] = lines;
+		if(pixRange / numTicks > 9) {
+			p['labels'] = lines.collect({ arg val; [val, this.formatLabel(val,nfrac) ] });
+		};
 		^p
 	}
 	formatLabel { arg val, numDecimalPlaces;
-		^val.round( 1.0/(2**numDecimalPlaces) )
+		^val.round( 1.0/(2**numDecimalPlaces) ).asString + (spec.units?"")
 	}
 }
 		
