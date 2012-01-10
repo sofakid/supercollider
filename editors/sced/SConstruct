@@ -18,6 +18,7 @@ PY_FILE_RE = re.compile('.*\.py$')
 LANG_FILE_RE = re.compile('.*\.lang$')
 XML_FILE_RE = re.compile('.*\.xml$')
 PLUGIN_FILE_RE = re.compile('.*\.gedit-plugin$')
+PLUGIN3_FILE_RE = re.compile('.*\.plugin$')
 
 ANY_FILE_RE = re.compile('.*')
 HOME_DIR_RE = re.compile(os.environ.get('HOME') + '.*')
@@ -116,7 +117,9 @@ install_scedfiles = env.Alias('install-scedfiles', [
 	install_dir( env, 'data/', os.path.join( share_dir(PREFIX), 'gtksourceview-2.0/language-specs' ), LANG_FILE_RE, 1 ),
 	install_dir( env, 'data/', os.path.join( share_dir(PREFIX), 'mime/packages' ), XML_FILE_RE, 1 ),
 	install_dir( env, 'data/', os.path.join( lib_dir(PREFIX), 'gedit-2/plugins' ), PLUGIN_FILE_RE, 1 ),
-	install_dir( env, 'sced/', os.path.join( lib_dir(PREFIX), 'gedit-2/plugins' ), PY_FILE_RE, 0 )
+	install_dir( env, 'sced/', os.path.join( lib_dir(PREFIX), 'gedit-2/plugins' ), PY_FILE_RE, 0 ),
+	install_dir( env, 'sced3/', os.path.join( lib_dir(PREFIX), 'gedit/plugins' ), PLUGIN3_FILE_RE, 1 ),
+	install_dir( env, 'sced3/', os.path.join( lib_dir(PREFIX), 'gedit/plugins' ), PY_FILE_RE, 1 )
 	])
 
 
