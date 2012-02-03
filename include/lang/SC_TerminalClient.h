@@ -130,6 +130,7 @@ protected:
 private:
 	// NOTE: called from input thread:
 #ifdef HAVE_READLINE
+	static void readlineInit();
 	static void *readlineFunc(void *);
 	static int readlineRecompile(int, int);
 	static void readlineCmdLine(char *cmdLine);
