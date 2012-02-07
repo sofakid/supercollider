@@ -6607,7 +6607,7 @@ void registerSCViewClasses()
     new SCViewMaker("SCSoundFileView", NewSCSoundFileView);
 	//these can be found in SCCocoaView.M
     new SCViewMaker("SCTextView", NewSCCocoaTextView);
-    new SCViewMaker("SCMovieView", NewSCMovieView);
+    //new SCViewMaker("SCMovieView", NewSCMovieView);
 	new SCViewMaker("SCQuartzComposerView", NewSCQuartzComposerView);
     new SCViewMaker("SCWebView", NewSCWebView);
 	new SCViewMaker("SCTextField", NewSCTextField);

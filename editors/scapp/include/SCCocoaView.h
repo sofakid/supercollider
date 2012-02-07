@@ -28,7 +28,7 @@
 #import "SCCocoaView.h"
 #import "SCTextView.h"
 #import "SCVirtualMachine.h"
-#include "QTKit/QTKit.h"
+#include "QuickTime/Movies.h"
 #include <Quartz/Quartz.h>
 #include <WebKit/WebView.h>
 #import <WebKit/WebEditingDelegate.h>
@@ -189,6 +189,7 @@ protected:
 	NSURL *mLastURL;
 };
 
+#if 0
 class SCMovieView : public SCView
 {
 public:
@@ -201,10 +202,13 @@ public:
 	virtual NSView* focusResponder() { return mMovieView; }
 
 protected:
-	QTMovieView *mMovieView;
-	QTTime mTime;
-	QTMovie *mMovie;
+	NSMovieView *mMovieView;
+	/* QT */
+	TimeBase mTimeBase;
+	TimeRecord mTimeRecord;
+	Movie mMovie;
 };
+#endif
 
 class SCWebView : public SCView
 {
