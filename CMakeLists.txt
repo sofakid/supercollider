@@ -199,6 +199,11 @@ else()
 	option(SC_PSYCOLLIDER "Build PsyCollider" OFF)
 endif()
 
+if(WIN32)
+    option(SC_WIN_BUNDLE "Create self-sufficient bundle and installer" OFF)
+    option(SC_WIN_DEP_DIRS "Directories where dependencies will be searched for")
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX)
     option(NATIVE "Optimize binary for this architecture (binaries may not run on other machines, requires gcc-4.3 or higher).")
     option(LTO "Use GCC's link time optimizer' (experimental).")
@@ -260,8 +265,8 @@ add_subdirectory(external_libraries)
 add_subdirectory(server)
 add_subdirectory(lang)
 add_subdirectory(bindings)
-add_subdirectory(platform)
 add_subdirectory(editors)
+add_subdirectory(platform)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     install(DIRECTORY include/common include/plugin_interface include/server include/lang
@@ -438,17 +443,6 @@ set_directory_properties(
 # testsuite
 #
 add_subdirectory(testsuite)
-
-#############################################
-# win32 install support
-
-if(WIN32)
-	install(FILES
-		${FFTW3F_LIBRARY} ${SNDFILE_LIBRARY} ${PTHREADS_LIBRARY}
-		${PORTAUDIO_LIBRARIES} ${READLINE_LIBRARY}
-		DESTINATION "SuperCollider"
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
-endif()
 
 #############################################
 # CPack support
