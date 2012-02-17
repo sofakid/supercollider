@@ -8,7 +8,7 @@
 
 !define VERSION "3.5-rc1"
 Name "SuperCollider ${VERSION}"
-OutFile ${SC_DST_DIR}\SuperCollider-${VERSION}.exe
+OutFile ${SC_DST_DIR}\SuperCollider-${VERSION}-win32.exe
 InstallDir $PROGRAMFILES\SuperCollider-${VERSION}
 
 !ifdef SC_ED
