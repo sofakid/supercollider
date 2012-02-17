@@ -77,8 +77,8 @@ static PyObject *
 stop_reader(PyObject *self, PyObject *obj)
 {
     if( !g_reader ) {
-        printf("ERROR: Reader not running!\n");
-        return NULL;
+        Py_INCREF(Py_None);
+        return Py_None;
     }
 
     WaitForSingleObject( g_reader->thread, INFINITE );

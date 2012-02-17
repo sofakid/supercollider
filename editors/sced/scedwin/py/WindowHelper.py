@@ -87,6 +87,7 @@ class WindowHelper:
         self.__insert_menu()
 
     def deactivate(self):
+        self.__deactivate()
         self.__remove_menu()
 
         self.__plugin = None
@@ -219,30 +220,42 @@ class WindowHelper:
         manager.remove_action_group(self.__sc_actions)
         manager.ensure_update()
 
+    def __activate(self):
+        if self.__lang is not None: return
+
+        self.__lang = ScLang(self.__plugin)
+        if not self.__lang.start():
+            self.__lang = None
+            self.__actions.get_action("ScedSuperColliderMode").set_active(False)
+            return
+
+        self.__log_panel = LogPanel()
+        panel = self.__window.get_bottom_panel()
+        panel.show()
+        panel.add_item(self.__log_panel, _("SuperCollider output"), gtk.STOCK_EXECUTE)
+        self.__log_panel.show()
+        self.__insert_sc_menu()
+
+        self.__logger = Logger(self.__lang.stdout, self.__log_panel)
+
+    def __deactivate(self):
+        # FIXME: un-record
+        if self.__lang is None: return
+
+        self.__lang.stop()
+        self.__lang = None
+
+        self.__logger.stop()
+
+        panel = self.__window.get_bottom_panel()
+        panel.remove_item(self.__log_panel)
+        self.__remove_sc_menu()
+
     def on_sc_mode_activate(self, action):
         if action.get_active():
-            self.__lang = ScLang(self.__plugin)
-            if not self.__lang.start():
-                self.__lang = None
-                return
-
-            self.__log_panel = LogPanel()
-            panel = self.__window.get_bottom_panel()
-            panel.show()
-            panel.add_item(self.__log_panel, _("SuperCollider output"), gtk.STOCK_EXECUTE)
-            self.__log_panel.show()
-
-            self.__logger = Logger(self.__lang.stdout, self.__log_panel)
-
-            self.__insert_sc_menu()
+            self.__activate()
         else:
-            # FIXME: un-record
-            if self.__lang is not None:
-                self.__lang.stop()
-                self.__logger.stop()
-                panel = self.__window.get_bottom_panel()
-                panel.remove_item(self.__log_panel)
-                self.__remove_sc_menu()
+            self.__deactivate()
 
     def on_evaluate(self, action):
         doc = self.__window.get_active_document()
@@ -326,10 +339,8 @@ class WindowHelper:
         self.__lang.stdin.write("\x18")
 
     def on_restart(self, action):
-        if self.__lang.running():
-            self.__lang.stop()
-        self.__lang.start()
-        self.__logger = Logger(self.__lang.stdout, self.__log_panel)
+        self.__deactivate()
+        self.__activate()
 
     def on_clear_log(self, action):
         self.__log_panel.buffer.set_text("")
