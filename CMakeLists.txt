@@ -200,8 +200,8 @@ else()
 endif()
 
 if(WIN32)
-    option(SC_WIN_BUNDLE "Create self-sufficient bundle and installer" OFF)
-    option(SC_WIN_DEP_DIRS "Directories where dependencies will be searched for")
+    option(SC_WIN_DEP_DIRS
+        "A list of directories where dependencies will be searched for when packaging.")
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -460,10 +460,11 @@ if(APPLE)
 	set(CPACK_DMG_DS_STORE "${CMAKE_SOURCE_DIR}/package/ds_store")
 	set(CPACK_DMG_BACKGROUND_IMAGE "${CMAKE_SOURCE_DIR}/package/background.png")
 	set(CPACK_PACKAGE_ICON "${CMAKE_SOURCE_DIR}/platform/mac/Resources/SCcube.icns")
-elseif(WIN32)
-	set(CPACK_MONOLITHIC_INSTALL 1)
 endif()
-include(CPack)
+
+if(NOT WIN32) # We define a custom 'package' target in platform/windows/CMakeLists.txt
+    include(CPack)
+endif()
 
 #############################################
 # hide advanced variables
