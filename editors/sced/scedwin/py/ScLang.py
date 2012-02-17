@@ -22,8 +22,9 @@ import subprocess
 import time # FIXME: time is a workaround
 import gtk
 import gedit
+import gobject
 
-def warn_config(message, plugin):
+def warn_config_deferred(message, plugin):
     message = message + "\n\nWould you like to open the configuration dialog now?"
     dialog = gtk.MessageDialog(
         parent = gedit.app_get_default().get_active_window(),
@@ -39,6 +40,10 @@ def warn_config(message, plugin):
         dialog = plugin.create_configure_dialog()
         dialog.run()
         dialog.destroy()
+    return False
+
+def warn_config(message, plugin):
+    gobject.idle_add( warn_config_deferred, message, plugin )
 
 class ScLang:
     def __init__(self, plugin):
