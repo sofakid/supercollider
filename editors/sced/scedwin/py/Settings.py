@@ -43,10 +43,10 @@ def load():
             print "Configuration file not a valid JSON script!"
         f.close()
 
-    sets.sc_dir = data.get("supercollider-dir", "C:/SuperCollider")
+    sets.sc_dir = data.get("supercollider-dir")
     sets.advanced = data.get("advanced", False)
     lang_data = data.get("interpreter", {})
-    sets.sclang_cmd = lang_data.get("command", "C:/SuperCollider/sclang.exe")
+    sets.sclang_cmd = lang_data.get("command")
     sets.sclang_work_dir = lang_data.get("runtime-dir")
 
     print "Sced settings loaded."
