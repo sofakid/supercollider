@@ -9,7 +9,7 @@
 !define VERSION "3.5-rc1"
 Name "SuperCollider ${VERSION}"
 OutFile ${SC_DST_DIR}\SuperCollider-${VERSION}.exe
-InstallDir "C:\SuperCollider"
+InstallDir $PROGRAMFILES\SuperCollider-${VERSION}
 
 !ifdef SC_ED
 Var GEDIT_DIR
