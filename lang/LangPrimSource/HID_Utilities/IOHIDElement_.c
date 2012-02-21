@@ -1,51 +1,47 @@
-//
-//	File:		IOHIDElement_.c of HID Utilities
-//
-//	Created:	9/21/06
-//
-//	Contains:	Convieance functions for IOHIDElementGetProperty
-//
-//	Copyright © 2007-2009 Apple Inc., All Rights Reserved
-//
-//	Disclaimer:	IMPORTANT:  This Apple software is supplied to you by
-//				Apple Inc. ("Apple") in consideration of your agreement to the
-//				following terms, and your use, installation, modification or
-//				redistribution of this Apple software constitutes acceptance of these
-//				terms.  If you do not agree with these terms, please do not use,
-//				install, modify or redistribute this Apple software.
-//
-//				In consideration of your agreement to abide by the following terms, and
-//				subject to these terms, Apple grants you a personal, non-exclusive
-//				license, under Apple's copyrights in this original Apple software (the
-//				"Apple Software"), to use, reproduce, modify and redistribute the Apple
-//				Software, with or without modifications, in source and/or binary forms;
-//				provided that if you redistribute the Apple Software in its entirety and
-//				without modifications, you must retain this notice and the following
-//				text and disclaimers in all such redistributions of the Apple Software.
-//				Neither the name, trademarks, service marks or logos of Apple Inc.
-//				may be used to endorse or promote products derived from the Apple
-//				Software without specific prior written permission from Apple.  Except
-//				as expressly stated in this notice, no other rights or licenses, express
-//				or implied, are granted by Apple herein, including but not limited to
-//				any patent rights that may be infringed by your derivative works or by
-//				other works in which the Apple Software may be incorporated.
-//
-//				The Apple Software is provided by Apple on an "AS IS" basis.  APPLE
-//				MAKES NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
-//				THE IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS
-//				FOR A PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND
-//				OPERATION ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
-//
-//				IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL
-//				OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-//				SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-//				INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
-//				MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED
-//				AND WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE),
-//				STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE
-//				POSSIBILITY OF SUCH DAMAGE.
-//
-
+//	    File: IOHIDElement_.c
+//	Abstract: convieance functions for IOHIDElementGetProperty
+//	 Version: 2.0
+//	
+//	Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
+//	Inc. ("Apple") in consideration of your agreement to the following
+//	terms, and your use, installation, modification or redistribution of
+//	this Apple software constitutes acceptance of these terms.  If you do
+//	not agree with these terms, please do not use, install, modify or
+//	redistribute this Apple software.
+//	
+//	In consideration of your agreement to abide by the following terms, and
+//	subject to these terms, Apple grants you a personal, non-exclusive
+//	license, under Apple's copyrights in this original Apple software (the
+//	"Apple Software"), to use, reproduce, modify and redistribute the Apple
+//	Software, with or without modifications, in source and/or binary forms;
+//	provided that if you redistribute the Apple Software in its entirety and
+//	without modifications, you must retain this notice and the following
+//	text and disclaimers in all such redistributions of the Apple Software.
+//	Neither the name, trademarks, service marks or logos of Apple Inc. may
+//	be used to endorse or promote products derived from the Apple Software
+//	without specific prior written permission from Apple.  Except as
+//	expressly stated in this notice, no other rights or licenses, express or
+//	implied, are granted by Apple herein, including but not limited to any
+//	patent rights that may be infringed by your derivative works or by other
+//	works in which the Apple Software may be incorporated.
+//	
+//	The Apple Software is provided by Apple on an "AS IS" basis.  APPLE
+//	MAKES NO WARRANTIES, EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION
+//	THE IMPLIED WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY AND FITNESS
+//	FOR A PARTICULAR PURPOSE, REGARDING THE APPLE SOFTWARE OR ITS USE AND
+//	OPERATION ALONE OR IN COMBINATION WITH YOUR PRODUCTS.
+//	
+//	IN NO EVENT SHALL APPLE BE LIABLE FOR ANY SPECIAL, INDIRECT, INCIDENTAL
+//	OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+//	SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+//	INTERRUPTION) ARISING IN ANY WAY OUT OF THE USE, REPRODUCTION,
+//	MODIFICATION AND/OR DISTRIBUTION OF THE APPLE SOFTWARE, HOWEVER CAUSED
+//	AND WHETHER UNDER THEORY OF CONTRACT, TORT (INCLUDING NEGLIGENCE),
+//	STRICT LIABILITY OR OTHERWISE, EVEN IF APPLE HAS BEEN ADVISED OF THE
+//	POSSIBILITY OF SUCH DAMAGE.
+//	
+//	Copyright (C) 2009 Apple Inc. All Rights Reserved.
+//	
 //*****************************************************
 #pragma mark - includes & imports
 //-----------------------------------------------------
@@ -85,16 +81,16 @@
 //
 // Returns:	Boolean			- TRUE if this is a valid element ref
 //
-Boolean HIDIsValidElement( IOHIDElementRef inIOHIDElementRef )
-{
-	Boolean result = FALSE;	// assume failure (pessimist!)
+Boolean HIDIsValidElement(IOHIDElementRef inIOHIDElementRef) {
+	Boolean result = FALSE; // assume failure (pessimist!)
 	if ( inIOHIDElementRef ) {
-		if ( CFGetTypeID( inIOHIDElementRef ) == IOHIDElementGetTypeID() ) {
+		if (                                   CFGetTypeID(inIOHIDElementRef) ==IOHIDElementGetTypeID() ) {
 			result = TRUE;
 		}
 	}
-	return result;
-}
+	
+	return (result);
+} // HIDIsValidElement
 
 //*************************************************************************
 //
@@ -109,15 +105,14 @@ Boolean HIDIsValidElement( IOHIDElementRef inIOHIDElementRef )
 //
 // Returns:	double		- current value for element
 //
-double IOHIDElement_GetValue( IOHIDElementRef inElementRef, IOHIDValueScaleType inIOHIDValueScaleType )
-{
+double IOHIDElement_GetValue(IOHIDElementRef inElementRef, IOHIDValueScaleType inIOHIDValueScaleType) {
 	long result = 0;
 	IOHIDValueRef tIOHIDValueRef;
-
-	if ( kIOReturnSuccess == IOHIDDeviceGetValue( IOHIDElementGetDevice( inElementRef ), inElementRef, &tIOHIDValueRef ) ) {
-		result = IOHIDValueGetScaledValue( tIOHIDValueRef, inIOHIDValueScaleType );
+	if ( kIOReturnSuccess == IOHIDDeviceGetValue(IOHIDElementGetDevice(inElementRef), inElementRef, &tIOHIDValueRef) ) {
+		result = IOHIDValueGetScaledValue(tIOHIDValueRef, inIOHIDValueScaleType);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetValue
 
 //*************************************************************************
@@ -131,17 +126,17 @@ double IOHIDElement_GetValue( IOHIDElementRef inElementRef, IOHIDValueScaleType 
 // Returns:	CFIndex - the minimum Calibration value for this element
 //
 
-CFIndex IOHIDElement_GetCalibrationMin( IOHIDElementRef inElementRef )
-{
+CFIndex IOHIDElement_GetCalibrationMin(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationMinKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMaxKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationMinKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMaxKey), &result) ) {
 			result = 0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationMinKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationMinKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationMin
 
 //*************************************************************************
@@ -156,9 +151,8 @@ CFIndex IOHIDElement_GetCalibrationMin( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationMin( IOHIDElementRef inElementRef, CFIndex inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationMinKey ), inValue );
+void IOHIDElement_SetCalibrationMin(IOHIDElementRef inElementRef, CFIndex inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationMinKey), inValue);
 }   // IOHIDElement_SetCalibrationMin
 
 //*************************************************************************
@@ -172,17 +166,17 @@ void IOHIDElement_SetCalibrationMin( IOHIDElementRef inElementRef, CFIndex inVal
 // Returns:	CFIndex - the maximum Calibration value for this element
 //
 
-CFIndex IOHIDElement_GetCalibrationMax( IOHIDElementRef inElementRef )
-{
+CFIndex IOHIDElement_GetCalibrationMax(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationMaxKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMinKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationMaxKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMinKey), &result) ) {
 			result = -0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationMaxKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationMaxKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationMax
 
 //*************************************************************************
@@ -197,9 +191,8 @@ CFIndex IOHIDElement_GetCalibrationMax( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationMax( IOHIDElementRef inElementRef, CFIndex inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationMaxKey ), inValue );
+void IOHIDElement_SetCalibrationMax(IOHIDElementRef inElementRef, CFIndex inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationMaxKey), inValue);
 }   // IOHIDElement_SetCalibrationMax
 
 //*************************************************************************
@@ -213,17 +206,17 @@ void IOHIDElement_SetCalibrationMax( IOHIDElementRef inElementRef, CFIndex inVal
 // Returns:	CFIndex - the maximum Calibration value for this element
 //
 
-CFIndex IOHIDElement_GetCalibrationSaturationMin( IOHIDElementRef inElementRef )
-{
+CFIndex IOHIDElement_GetCalibrationSaturationMin(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationSaturationMinKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMinKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationSaturationMinKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMinKey), &result) ) {
 			result = -0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationSaturationMinKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationSaturationMinKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationSaturationMin
 
 //*************************************************************************
@@ -238,9 +231,8 @@ CFIndex IOHIDElement_GetCalibrationSaturationMin( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationSaturationMin( IOHIDElementRef inElementRef, CFIndex inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationSaturationMinKey ), inValue );
+void IOHIDElement_SetCalibrationSaturationMin(IOHIDElementRef inElementRef, CFIndex inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationSaturationMinKey), inValue);
 }   // IOHIDElement_SetCalibrationSaturationMin
 
 //*************************************************************************
@@ -254,17 +246,17 @@ void IOHIDElement_SetCalibrationSaturationMin( IOHIDElementRef inElementRef, CFI
 // Returns:	CFIndex - the maximum Calibration value for this element
 //
 
-CFIndex IOHIDElement_GetCalibrationSaturationMax( IOHIDElementRef inElementRef )
-{
+CFIndex IOHIDElement_GetCalibrationSaturationMax(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationSaturationMaxKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMinKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationSaturationMaxKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMinKey), &result) ) {
 			result = -0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationSaturationMaxKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationSaturationMaxKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationSaturationMax
 
 //*************************************************************************
@@ -279,9 +271,8 @@ CFIndex IOHIDElement_GetCalibrationSaturationMax( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationSaturationMax( IOHIDElementRef inElementRef, CFIndex inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationSaturationMaxKey ), inValue );
+void IOHIDElement_SetCalibrationSaturationMax(IOHIDElementRef inElementRef, CFIndex inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationSaturationMaxKey), inValue);
 }   // IOHIDElement_SetCalibrationSaturationMax
 
 //*************************************************************************
@@ -295,17 +286,17 @@ void IOHIDElement_SetCalibrationSaturationMax( IOHIDElementRef inElementRef, CFI
 // Returns:	CFIndex - the maximum Calibration value for this element
 //
 
-CFIndex IOHIDElement_GetCalibrationDeadZoneMin( IOHIDElementRef inElementRef )
-{
+CFIndex IOHIDElement_GetCalibrationDeadZoneMin(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationDeadZoneMinKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMinKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationDeadZoneMinKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMinKey), &result) ) {
 			result = -0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationDeadZoneMinKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationDeadZoneMinKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationDeadZoneMin
 
 //*************************************************************************
@@ -320,9 +311,8 @@ CFIndex IOHIDElement_GetCalibrationDeadZoneMin( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationDeadZoneMin( IOHIDElementRef inElementRef, CFIndex inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationDeadZoneMinKey ), inValue );
+void IOHIDElement_SetCalibrationDeadZoneMin(IOHIDElementRef inElementRef, CFIndex inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationDeadZoneMinKey), inValue);
 }   // IOHIDElement_SetCalibrationDeadZoneMin
 
 //*************************************************************************
@@ -336,17 +326,17 @@ void IOHIDElement_SetCalibrationDeadZoneMin( IOHIDElementRef inElementRef, CFInd
 // Returns:	CFIndex - the maximum Calibration value for this element
 //
 
-CFIndex IOHIDElement_GetCalibrationDeadZoneMax( IOHIDElementRef inElementRef )
-{
+CFIndex IOHIDElement_GetCalibrationDeadZoneMax(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationDeadZoneMaxKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMinKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationDeadZoneMaxKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMinKey), &result) ) {
 			result = -0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationDeadZoneMaxKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationDeadZoneMaxKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationDeadZoneMax
 
 //*************************************************************************
@@ -361,9 +351,8 @@ CFIndex IOHIDElement_GetCalibrationDeadZoneMax( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationDeadZoneMax( IOHIDElementRef inElementRef, CFIndex inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationDeadZoneMaxKey ), inValue );
+void IOHIDElement_SetCalibrationDeadZoneMax(IOHIDElementRef inElementRef, CFIndex inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationDeadZoneMaxKey), inValue);
 }   // IOHIDElement_SetCalibrationDeadZoneMax
 
 //*************************************************************************
@@ -377,17 +366,17 @@ void IOHIDElement_SetCalibrationDeadZoneMax( IOHIDElementRef inElementRef, CFInd
 // Returns:	double_t - the maximum Calibration value for this element
 //
 
-double_t IOHIDElement_GetCalibrationGranularity( IOHIDElementRef inElementRef )
-{
+double_t IOHIDElement_GetCalibrationGranularity(IOHIDElementRef inElementRef) {
 	CFIndex result;
-
-	if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationGranularityKey ), &result ) ) {
-		if ( !IOHIDElement_GetLongProperty( inElementRef, CFSTR( kIOHIDElementMinKey ), &result ) ) {
+	if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationGranularityKey), &result) ) {
+		if ( !IOHIDElement_GetLongProperty(inElementRef, CFSTR(kIOHIDElementMinKey), &result) ) {
 			result = -0x7FFFFFFF;
 		}
-		IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationGranularityKey ), result );
+		
+		IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationGranularityKey), result);
 	}
-	return result;
+	
+	return (result);
 }   // IOHIDElement_GetCalibrationGranularity
 
 //*************************************************************************
@@ -402,9 +391,8 @@ double_t IOHIDElement_GetCalibrationGranularity( IOHIDElementRef inElementRef )
 // Returns:	nothing
 //
 
-void IOHIDElement_SetCalibrationGranularity( IOHIDElementRef inElementRef, double_t inValue )
-{
-	IOHIDElement_SetLongProperty( inElementRef, CFSTR( kIOHIDElementCalibrationGranularityKey ), inValue );
+void IOHIDElement_SetCalibrationGranularity(IOHIDElementRef inElementRef, double_t inValue) {
+	IOHIDElement_SetLongProperty(inElementRef, CFSTR(kIOHIDElementCalibrationGranularityKey), inValue);
 }   // IOHIDElement_SetCalibrationGranularity
 
 //*************************************************************************
@@ -417,49 +405,47 @@ void IOHIDElement_SetCalibrationGranularity( IOHIDElementRef inElementRef, doubl
 //
 // Returns:	nothing
 //
-void IOHIDElement_SetupCalibration( IOHIDElementRef inIOHIDElementRef )
-{
+void IOHIDElement_SetupCalibration(IOHIDElementRef inIOHIDElementRef) {
 	// these are the min/max values returned by IOHIDValueGetScaledValue( v, kIOHIDValueScaleTypeCalibrated );
-	IOHIDElement_SetCalibrationMin( inIOHIDElementRef, IOHIDElementGetLogicalMin( inIOHIDElementRef ) );
-	IOHIDElement_SetCalibrationMax( inIOHIDElementRef, IOHIDElementGetLogicalMax( inIOHIDElementRef ) );
-
+	IOHIDElement_SetCalibrationMin( inIOHIDElementRef, IOHIDElementGetLogicalMin(inIOHIDElementRef) );
+	IOHIDElement_SetCalibrationMax( inIOHIDElementRef, IOHIDElementGetLogicalMax(inIOHIDElementRef) );
+	
 	// this is the granularity of the values returned by IOHIDValueGetScaledValue( v, kIOHIDValueScaleTypeCalibrated );
 	// for example if set to 0.1 the values returned will be multiples of 0.1 ( 0.1, 0.2, 0.3, etc. )
-	IOHIDElement_SetCalibrationGranularity( inIOHIDElementRef, 0. );
+	IOHIDElement_SetCalibrationGranularity(inIOHIDElementRef, 0.);
 	
 	// these define the dead zone (like in the middel of joystick axis)
-	IOHIDElement_SetCalibrationDeadZoneMin( inIOHIDElementRef, 0 );
-	IOHIDElement_SetCalibrationDeadZoneMax( inIOHIDElementRef, 0 );
+	IOHIDElement_SetCalibrationDeadZoneMin(inIOHIDElementRef, 0);
+	IOHIDElement_SetCalibrationDeadZoneMax(inIOHIDElementRef, 0);
 #if 1
 	// get the current value of this element
-	double value = IOHIDElement_GetValue( inIOHIDElementRef, kIOHIDValueScaleTypePhysical );
+	double value = IOHIDElement_GetValue(inIOHIDElementRef, kIOHIDValueScaleTypePhysical);
 	// use it as our min/mas saturation
-	IOHIDElement_SetCalibrationSaturationMin( inIOHIDElementRef, value );
-	IOHIDElement_SetCalibrationSaturationMax( inIOHIDElementRef, value );
+	IOHIDElement_SetCalibrationSaturationMin(inIOHIDElementRef, value);
+	IOHIDElement_SetCalibrationSaturationMax(inIOHIDElementRef, value);
 #else
 	// calculate the middle physical value we would expect from this element
-	CFIndex valueMin = IOHIDElementGetPhysicalMin( inIOHIDElementRef );
-	CFIndex valueMax = IOHIDElementGetPhysicalMax( inIOHIDElementRef );
-	CFIndex valueMid = ( valueMin + valueMax ) / 2;
+	CFIndex valueMin = IOHIDElementGetPhysicalMin(inIOHIDElementRef);
+	CFIndex valueMax = IOHIDElementGetPhysicalMax(inIOHIDElementRef);
+	CFIndex valueMid = (valueMin + valueMax) / 2;
 	
 	// use it as our min/mas saturation
 	// this value determines the min/max values that have been recieved from the device element
-	IOHIDElement_SetCalibrationSaturationMin( inIOHIDElementRef, valueMid );
-	IOHIDElement_SetCalibrationSaturationMax( inIOHIDElementRef, valueMid );
+	IOHIDElement_SetCalibrationSaturationMin(inIOHIDElementRef, valueMid);
+	IOHIDElement_SetCalibrationSaturationMax(inIOHIDElementRef, valueMid);
 	
 	// get the current value of this element
-	double value = IOHIDElement_GetValue( inIOHIDElementRef, kIOHIDValueScaleTypePhysical );
-	
+	double value = IOHIDElement_GetValue(inIOHIDElementRef, kIOHIDValueScaleTypePhysical);
 	// and use it to adjust the current saturation values if it's outside their range
-	if ( value < IOHIDElement_GetCalibrationSaturationMin( inIOHIDElementRef ) ) {
-		IOHIDElement_SetCalibrationSaturationMin( inIOHIDElementRef, value );
+	if ( value < IOHIDElement_GetCalibrationSaturationMin(inIOHIDElementRef) ) {
+		IOHIDElement_SetCalibrationSaturationMin(inIOHIDElementRef, value);
+	}
+	if ( value > IOHIDElement_GetCalibrationSaturationMax(inIOHIDElementRef) ) {
+		IOHIDElement_SetCalibrationSaturationMax(inIOHIDElementRef, value);
 	}
 	
-	if ( value > IOHIDElement_GetCalibrationSaturationMax( inIOHIDElementRef ) ) {
-		IOHIDElement_SetCalibrationSaturationMax( inIOHIDElementRef, value );
-	}
 #endif
-}	// IOHIDElement_SetupCalibration
+}   // IOHIDElement_SetupCalibration
 //*****************************************************
 #pragma mark - local (static) function implementations
 //-----------------------------------------------------
@@ -477,20 +463,19 @@ void IOHIDElement_SetupCalibration( IOHIDElementRef inIOHIDElementRef )
 //			outValue		- the long property's value
 //
 
-Boolean IOHIDElement_GetLongProperty( IOHIDElementRef inElementRef, CFStringRef inKey, long * outValue )
-{
+Boolean IOHIDElement_GetLongProperty(IOHIDElementRef inElementRef, CFStringRef inKey, long *outValue) {
 	Boolean result = FALSE;
-
-	CFTypeRef tCFTypeRef = IOHIDElementGetProperty( inElementRef, inKey );
-
+	
+	CFTypeRef tCFTypeRef = IOHIDElementGetProperty(inElementRef, inKey);
 	if ( tCFTypeRef ) {
 		// if this is a number
-		if ( CFNumberGetTypeID() == CFGetTypeID( tCFTypeRef ) ) {
+		if ( CFNumberGetTypeID() == CFGetTypeID(tCFTypeRef) ) {
 			// get it's value
-			result =  CFNumberGetValue( ( CFNumberRef ) tCFTypeRef, kCFNumberSInt32Type, outValue );
+			result = CFNumberGetValue( (CFNumberRef) tCFTypeRef, kCFNumberSInt32Type, outValue );
 		}
 	}
-	return result;
+	
+	return (result);
 } /* IOHIDElement_GetLongProperty */
 
 //*************************************************************************
@@ -506,14 +491,12 @@ Boolean IOHIDElement_GetLongProperty( IOHIDElementRef inElementRef, CFStringRef 
 // Returns:	nothing
 //
 
-void IOHIDElement_SetLongProperty( IOHIDElementRef inElementRef, CFStringRef inKey, long inValue )
-{
-	CFNumberRef tCFNumberRef = CFNumberCreate( kCFAllocatorDefault, kCFNumberSInt32Type, &inValue );
-
+void IOHIDElement_SetLongProperty(IOHIDElementRef inElementRef, CFStringRef inKey, long inValue) {
+	CFNumberRef tCFNumberRef = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &inValue);
 	if ( tCFNumberRef ) {
-		IOHIDElementSetProperty( inElementRef, inKey, tCFNumberRef );
-		CFRelease( tCFNumberRef );
+		IOHIDElementSetProperty(inElementRef, inKey, tCFNumberRef);
+		CFRelease(tCFNumberRef);
 	}
-}
+} // IOHIDElement_SetLongProperty
 
 //*****************************************************

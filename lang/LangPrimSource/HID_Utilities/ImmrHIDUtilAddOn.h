@@ -1,5 +1,5 @@
-//	    File: IOHIDLib_.h
-//	Abstract: Single include file for all header files of IOHIDLib
+//	    File: ImmrHIDUtilAddOn.h
+//	Abstract: Glue code to convert IOHIDDeviceRef's to (FFB) io_object_t's
 //	 Version: 2.0
 //	
 //	Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
@@ -43,69 +43,8 @@
 //	Copyright (C) 2009 Apple Inc. All Rights Reserved.
 //	
 //*****************************************************
-#ifndef __IOHIDLib___
-#define __IOHIDLib___
-
-//*****************************************************
-#pragma mark - includes & imports
-//-----------------------------------------------------
+#include <IOKit/IOKitLib.h>
 #include <IOKit/hid/IOHIDLib.h>
 
-#include "IOHIDDevice_.h"
-#include "IOHIDElement_.h"
-
-#include "ImmrHIDUtilAddOn.h"
-
-//*****************************************************
-#if PRAGMA_ONCE
-#pragma once
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-	
-#if PRAGMA_IMPORT
-#pragma import on
-#endif
-	
-#if PRAGMA_STRUCT_ALIGN
-#pragma options align=mac68k
-#elif PRAGMA_STRUCT_PACKPUSH
-#pragma pack(push, 2)
-#elif PRAGMA_STRUCT_PACK
-#pragma pack(2)
-#endif
-	
-	//*****************************************************
-#pragma mark - typedef's, struct's, enums, defines, etc.
-	//-----------------------------------------------------
-	
-	//*****************************************************
-#pragma mark - exported globals
-	//-----------------------------------------------------
-	
-	//*****************************************************
-#pragma mark - exported function prototypes
-	//-----------------------------------------------------
-	
-	//*****************************************************
-#if PRAGMA_STRUCT_ALIGN
-#pragma options align=reset
-#elif PRAGMA_STRUCT_PACKPUSH
-#pragma pack(pop)
-#elif PRAGMA_STRUCT_PACK
-#pragma pack()
-#endif
-	
-#ifdef PRAGMA_IMPORT_OFF
-#pragma import off
-#elif PRAGMA_IMPORT
-#pragma import reset
-#endif
-	
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // __IOHIDLib___
+extern io_service_t AllocateHIDObjectFromIOHIDDeviceRef(IOHIDDeviceRef inIOHIDDeviceRef);
+extern bool FreeHIDObject(io_object_t inHIDObject);

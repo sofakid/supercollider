@@ -30,13 +30,14 @@
 #include <Carbon/Carbon.h>
 
 #include "HID_Utilities_External.h"
+#include "HID_Name_Lookup.h"
 
-/*
+
 #include <IOKit/IOKitLib.h>
 #include <IOKit/IOCFPlugIn.h>
 #include <IOKit/hid/IOHIDLib.h>
 #include <IOKit/hid/IOHIDKeys.h>
-*/
+
 #include <IOKit/hid/IOHIDUsageTables.h>
 
 #include <mach/mach.h>
@@ -54,29 +55,6 @@
 #include "SC_InlineBinaryOp.h"
 #include "PyrSched.h"
 #include "GC.h"
-
-// Backward compatibility for the older (10.4) way of doing things:
-#if (MAC_OS_X_VERSION_MIN_REQUIRED <= MAC_OS_X_VERSION_10_4)
-	#define SC_MAC_HIDSTYLE_10_4 1
-	#define IOHIDDeviceRef pRecDevice
-	#define IOHIDElementRef pRecElement
-	#define IOHIDDevice_GetLocationID(x) (x->locID)
-	#define IOHIDElementGetType(x) ((IOHIDElementType) x->type)
-	#define IOHIDElementGetCookie(x) (x->cookie)
-	#define IOHIDElementGetLogicalMin(x) (x->min)
-	#define IOHIDElementGetLogicalMax(x) (x->max)
-	#define IOHIDElementGetUsagePage(x) (x->usagePage)
-	#define IOHIDElementGetUsage(x) (x->usage)
-	#define IOHIDDevice_GetManufacturer(x) (x->manufacturer)
-	#define IOHIDDevice_GetProduct(x) (x->product)
-	#define IOHIDDevice_GetUsagePage(x) (x->usagePage)
-	#define IOHIDDevice_GetUsage(x) (x->usage)
-	#define IOHIDDevice_GetVendorID(x) (x->vendorID)
-	#define IOHIDDevice_GetProductID(x) (x->productID)
-	#define IOHIDDevice_GetLocationID(x) (x->locID)
-	#define IOHIDDevice_GetVersionNumber(x) (x->version)
-	#define IOHIDDevice_GetSerialNumber(x) (x->serial)
-#endif
 
 PyrSymbol * s_readError;
 PyrSymbol * s_hidAction;
@@ -142,6 +120,7 @@ int prHIDBuildElementList(VMGlobals *g, int numArgsPushed)
 		for(uint i=0; i<numElements; i++){
 			if(devElement){
 				char cstrElementName [256];
+                char tmp[256];
 				PyrObject* devElementArray = newPyrArray(g->gc, 8 * sizeof(PyrObject), 0 , true);
 				// type name (1)
 				HIDGetTypeName(IOHIDElementGetType(devElement), cstrElementName);
@@ -149,7 +128,14 @@ int prHIDBuildElementList(VMGlobals *g, int numArgsPushed)
 				SetObject(devElementArray->slots+devElementArray->size++, devstring);
 				//g->gc->GCWrite(devElementArray, (PyrObject*) devstring);
 				//usage (2)
-				HIDGetUsageName (IOHIDElementGetUsagePage(devElement), IOHIDElementGetUsage(devElement), cstrElementName);
+//				HIDGetUsageName (IOHIDElementGetUsagePage(devElement), IOHIDElementGetUsage(devElement), cstrElementName);
+                
+                CFStringRef tmpRef;
+                tmpRef = HIDCopyUsageName(IOHIDDevice_GetPrimaryUsagePage(pCurrentHIDDevice), IOHIDDevice_GetPrimaryUsage(pCurrentHIDDevice));
+                if(tmpRef){
+                    CFStringGetCString(tmpRef, cstrElementName, 256, kCFStringEncodingASCII);
+                    CFRelease(tmpRef);                    
+                }
 				PyrString *usestring = newPyrString(g->gc, cstrElementName, 0, true);
 				SetObject(devElementArray->slots+devElementArray->size++, usestring);
 				//g->gc->GCWrite(devElementArray, (PyrObject*) usestring);
@@ -208,12 +194,19 @@ int prHIDBuildDeviceList(VMGlobals *g, int numArgsPushed)
 	//UInt32 usage = NULL;
 
 	Boolean result = HIDBuildDeviceList (usagePage, usage);
-#if(SC_MAC_HIDSTYLE_10_4)
-    // on 10.4, this should return false (!)
-    result = !result;
-#endif
-	if(!result) post("no HID devices found\n");
-
+    // huh - this doesn't make sense to me - connect a device and test
+	if(!result) {
+        post("no HID devices found\n");   
+        // is this bad???
+		SetNil(a);
+		return errNone;
+    }
+    if(!gDeviceCFArrayRef) {
+        post("no HID devices found\n");   
+        // is this bad???
+		SetNil(a);
+		return errNone;        
+    }
 	int numdevs = HIDCountDevices();
 	gNumberOfHIDDevices = numdevs;
 	if(!numdevs){
@@ -230,9 +223,6 @@ int prHIDBuildDeviceList(VMGlobals *g, int numArgsPushed)
 		//device:
 		PyrObject* devNameArray = newPyrArray(g->gc, 8 * sizeof(PyrObject), 0 , true);
 		//manufacturer:
-#if(SC_MAC_HIDSTYLE_10_4)
-		PyrString *devstring = newPyrString(g->gc, pCurrentHIDDevice->manufacturer, 0, true);
-#else
 		*tmp = 0;
         stringref = IOHIDDevice_GetManufacturer(pCurrentHIDDevice);
 		if (stringref)
@@ -241,13 +231,9 @@ int prHIDBuildDeviceList(VMGlobals *g, int numArgsPushed)
             CFRelease(stringref);
         }
 		PyrString *devstring = newPyrString(g->gc, tmp, 0, true);
-#endif
 		SetObject(devNameArray->slots+devNameArray->size++, devstring);
 		g->gc->GCWrite(devNameArray, (PyrObject*) devstring);
 		//product name:
-#if(SC_MAC_HIDSTYLE_10_4)
-		devstring = newPyrString(g->gc, pCurrentHIDDevice->product, 0, true);
-#else
 		*tmp = 0;
 		stringref = IOHIDDevice_GetProduct(pCurrentHIDDevice);
         if (stringref)
@@ -256,19 +242,21 @@ int prHIDBuildDeviceList(VMGlobals *g, int numArgsPushed)
             CFRelease(stringref);
         }
 		devstring = newPyrString(g->gc, tmp, 0, true);
-#endif
 		SetObject(devNameArray->slots+devNameArray->size++, devstring);
 		g->gc->GCWrite(devNameArray, (PyrObject*) devstring);
 
 		//usage
-#if(SC_MAC_HIDSTYLE_10_4)
-		HIDGetUsageName (pCurrentHIDDevice->usagePage, pCurrentHIDDevice->usage, tmp);
-		devstring = newPyrString(g->gc, tmp, 0, true);
-#else
+//        *tmp = 0;
+//        HIDGetUsageName (IOHIDDevice_GetPrimaryUsagePage(pCurrentHIDDevice), IOHIDDevice_GetPrimaryUsage(pCurrentHIDDevice), tmp);
+        CFStringRef tmpRef;
         *tmp = 0;
-		HIDGetUsageName (IOHIDDevice_GetPrimaryUsagePage(pCurrentHIDDevice), IOHIDDevice_GetPrimaryUsage(pCurrentHIDDevice), tmp);
+        tmpRef = HIDCopyUsageName(IOHIDDevice_GetPrimaryUsagePage(pCurrentHIDDevice), IOHIDDevice_GetPrimaryUsage(pCurrentHIDDevice));
+        
+        if(tmpRef){
+            CFStringGetCString(tmpRef, tmp, 256, kCFStringEncodingASCII);
+            CFRelease(tmpRef);
+        }
 		devstring = newPyrString(g->gc, tmp, 0, true);
-#endif
 		SetObject(devNameArray->slots+devNameArray->size++, devstring);
 		g->gc->GCWrite(devNameArray, (PyrObject*) devstring);
 		//vendor id
@@ -282,9 +270,6 @@ int prHIDBuildDeviceList(VMGlobals *g, int numArgsPushed)
 		SetInt(devNameArray->slots+devNameArray->size++, IOHIDDevice_GetVersionNumber(pCurrentHIDDevice));
 
 		//serial
-#if(SC_MAC_HIDSTYLE_10_4)
-		devstring = newPyrString(g->gc, pCurrentHIDDevice->serial, 0, true);
-#else
         *tmp = 0;
 		stringref = IOHIDDevice_GetSerialNumber(pCurrentHIDDevice);
 		if (stringref)
@@ -293,7 +278,6 @@ int prHIDBuildDeviceList(VMGlobals *g, int numArgsPushed)
             CFRelease(stringref);
         }
 		devstring = newPyrString(g->gc, tmp, 0, true);
-#endif
 		SetObject(devNameArray->slots+devNameArray->size++, devstring);
 		g->gc->GCWrite(devNameArray, (PyrObject*) devstring);
 
@@ -336,13 +320,6 @@ int prHIDGetValue(VMGlobals *g, int numArgsPushed)
 
 	if (pCurrentHIDElement)
     {
-#if(SC_MAC_HIDSTYLE_10_4)
-		SInt32 value = HIDGetElementValue (pCurrentHIDDevice, pCurrentHIDElement);
-		// if it's not a button and it's not a hatswitch then calibrate
-		if(( pCurrentHIDElement->type != kIOHIDElementTypeInput_Button ) &&
-			( pCurrentHIDElement->usagePage == 0x01 && pCurrentHIDElement->usage != kHIDUsage_GD_Hatswitch))
-			value = HIDCalibrateValue ( value, pCurrentHIDElement );
-#else
 		SInt32 value;
 		// if it's not a button and it's not a hatswitch then calibrate
 		if(( IOHIDElementGetType(pCurrentHIDElement) != kIOHIDElementTypeInput_Button ) &&
@@ -354,7 +331,6 @@ int prHIDGetValue(VMGlobals *g, int numArgsPushed)
 		{
 			value = IOHIDElement_GetValue(pCurrentHIDElement, kIOHIDValueScaleTypePhysical);
 		}
-#endif
 		SetInt(a, value);
 	}
 	else SetNil(a);
@@ -400,26 +376,9 @@ int prHIDSetValue(VMGlobals *g, int numArgsPushed)
 
 	if (pCurrentHIDElement)
     {
-#if(SC_MAC_HIDSTYLE_10_4)
-		IOHIDEventStruct event =
-		{
-			kIOHIDElementTypeOutput,
-			pCurrentHIDElement->cookie,
-			value,
-			{0},
-			sizeof(int),
-			NULL
-		};
-		SInt32 value = HIDSetElementValue (pCurrentHIDDevice, pCurrentHIDElement, &event);
-		 // if it's not a button and it's not a hatswitch then calibrate
-	//	if(( pCurrentHIDElement->type != kIOHIDElementTypeInput_Button ) &&
-	//		( pCurrentHIDElement->usagePage == 0x01 && pCurrentHIDElement->usage != kHIDUsage_GD_Hatswitch))
-	//		value = HIDCalibrateValue ( value, pCurrentHIDElement );
-#else
 		IOHIDValueRef valueref = IOHIDValueCreateWithIntegerValue(0, pCurrentHIDElement, 0, value);
 		IOHIDDeviceSetValue(pCurrentHIDDevice, pCurrentHIDElement, valueref);
 		CFRelease(valueref);
-#endif
 		SetInt(a, value);
 	}
 	else SetNil(a);
@@ -430,35 +389,19 @@ int prHIDSetValue(VMGlobals *g, int numArgsPushed)
 void PushQueueEvents_RawValue ();
 void PushQueueEvents_RawValue (){
 
-#if(SC_MAC_HIDSTYLE_10_4)
-	IOHIDEventStruct event;
-#else
 	IOHIDValueRef value_ref = 0;
-#endif
 	IOHIDDeviceRef  pCurrentHIDDevice = HIDGetFirstDevice ();
 	int numdevs = gNumberOfHIDDevices;
 	unsigned char result;
 	for(int i=0; i< numdevs; i++){
-#if(SC_MAC_HIDSTYLE_10_4)
-		result = HIDGetEvent(pCurrentHIDDevice, (void*) &event);
-#else
 		result = HIDGetEvent(pCurrentHIDDevice, &value_ref);
-#endif
 		if(result && compiledOK) {
-#if(SC_MAC_HIDSTYLE_10_4)
-			SInt32 value = event.value;
-#else
 			SInt32 value = IOHIDValueGetIntegerValue(value_ref);
-#endif
 			int vendorID = IOHIDDevice_GetVendorID(pCurrentHIDDevice);;
 			int productID = IOHIDDevice_GetProductID(pCurrentHIDDevice);
 			int locID = IOHIDDevice_GetLocationID(pCurrentHIDDevice);
-#if(SC_MAC_HIDSTYLE_10_4)
-			IOHIDElementCookie cookie = (IOHIDElementCookie) event.elementCookie;
-#else
 			IOHIDElementCookie cookie = IOHIDElementGetCookie(IOHIDValueGetElement(value_ref));
 			CFRelease(value_ref);
-#endif
 			VMGlobals *g = gMainVMGlobals;
 			pthread_mutex_lock (&gLangMutex);
 			g->canCallOS = false; // cannot call the OS
@@ -496,37 +439,21 @@ void PushQueueEvents_RawValue (){
 void PushQueueEvents_CalibratedValue ();
 void PushQueueEvents_CalibratedValue (){
 
-#if(SC_MAC_HIDSTYLE_10_4)
-	IOHIDEventStruct event;
-#else
 	IOHIDValueRef value_ref = 0;
-#endif
 	IOHIDDeviceRef  pCurrentHIDDevice = HIDGetFirstDevice ();
 
 	int numdevs = gNumberOfHIDDevices;
 	unsigned char result;
 	for(int i=0; i< numdevs; i++){
 
-#if(SC_MAC_HIDSTYLE_10_4)
-		result = HIDGetEvent(pCurrentHIDDevice, (void*) &event);
-#else
 		result = HIDGetEvent(pCurrentHIDDevice, &value_ref);
-#endif
 		if(result && compiledOK) {
-#if(SC_MAC_HIDSTYLE_10_4)
-			SInt32 value = event.value;
-#else
 			SInt32 value = IOHIDValueGetScaledValue(value_ref, kIOHIDValueScaleTypeCalibrated);
-#endif
 			int vendorID = IOHIDDevice_GetVendorID(pCurrentHIDDevice);;
 			int productID = IOHIDDevice_GetProductID(pCurrentHIDDevice);
 			int locID = IOHIDDevice_GetLocationID(pCurrentHIDDevice);
-#if(SC_MAC_HIDSTYLE_10_4)
-			IOHIDElementCookie cookie = (IOHIDElementCookie) event.elementCookie;
-#else
 			IOHIDElementCookie cookie = IOHIDElementGetCookie(IOHIDValueGetElement(value_ref));
 			CFRelease(value_ref);
-#endif
 			IOHIDElementRef pCurrentHIDElement =  HIDGetFirstDeviceElement (pCurrentHIDDevice, kHIDElementTypeAll);
 	// use gElementCookie to find current element
 			while (pCurrentHIDElement && ( (IOHIDElementGetCookie(pCurrentHIDElement)) != cookie))
@@ -534,9 +461,6 @@ void PushQueueEvents_CalibratedValue (){
 
 			if (pCurrentHIDElement)
 			{
-#if(SC_MAC_HIDSTYLE_10_4)
-			value = HIDCalibrateValue(value, pCurrentHIDElement);
-#endif
 			//find element to calibrate
 			VMGlobals *g = gMainVMGlobals;
 			pthread_mutex_lock (&gLangMutex);

@@ -1,5 +1,5 @@
-//	    File: IOHIDLib_.h
-//	Abstract: Single include file for all header files of IOHIDLib
+//	    File: ImmrHIDUtilAddOn.c
+//	Abstract: Glue code to convert IOHIDDeviceRef's to (FFB) io_object_t's
 //	 Version: 2.0
 //	
 //	Disclaimer: IMPORTANT:  This Apple software is supplied to you by Apple
@@ -43,69 +43,59 @@
 //	Copyright (C) 2009 Apple Inc. All Rights Reserved.
 //	
 //*****************************************************
-#ifndef __IOHIDLib___
-#define __IOHIDLib___
-
-//*****************************************************
-#pragma mark - includes & imports
-//-----------------------------------------------------
-#include <IOKit/hid/IOHIDLib.h>
-
-#include "IOHIDDevice_.h"
-#include "IOHIDElement_.h"
+#include <mach/mach.h>
+#include <mach/mach_error.h>
 
 #include "ImmrHIDUtilAddOn.h"
 
-//*****************************************************
-#if PRAGMA_ONCE
-#pragma once
-#endif
+//---------------------------------------------------------------------------------
+//
+// AllocateHIDObjectFromIOHIDDeviceRef( )
+//
+//	returns:
+//		NULL, or acceptable io_object_t
+//
+//---------------------------------------------------------------------------------
+io_service_t AllocateHIDObjectFromIOHIDDeviceRef(IOHIDDeviceRef inIOHIDDeviceRef) {
+	io_service_t result = 0L;
+	if ( inIOHIDDeviceRef ) {
+		// Set up the matching criteria for the devices we're interested in.
+		// We are interested in instances of class IOHIDDevice.
+		// matchingDict is consumed below( in IOServiceGetMatchingService )
+		// so we have no leak here.
+		CFMutableDictionaryRef matchingDict = IOServiceMatching(kIOHIDDeviceKey);
+		if ( matchingDict ) {
+			// Add a key for locationID to our matching dictionary.  This works for matching to
+			// IOHIDDevices, so we will only look for a device attached to that particular port
+			// on the machine.
+			CFTypeRef tCFTypeRef = IOHIDDeviceGetProperty( inIOHIDDeviceRef, CFSTR(kIOHIDLocationIDKey) );
+			if ( tCFTypeRef ) {
+				CFDictionaryAddValue(matchingDict, CFSTR(kIOHIDLocationIDKey), tCFTypeRef);
+				// CFRelease( tCFTypeRef );	// don't release objects that we "Get".
+				
+				// IOServiceGetMatchingService assumes that we already know that there is only one device
+				// that matches.  This way we don't have to do the whole iteration dance to look at each
+				// device that matches.  This is a new API in 10.2
+				result = IOServiceGetMatchingService(kIOMasterPortDefault, matchingDict);
+			}
+			
+			// Note: We're not leaking the matchingDict.
+			// One reference is consumed by IOServiceGetMatchingServices
+		}
+	}
+	
+	return (result);
+}   // AllocateHIDObjectFromIOHIDDeviceRef
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+//---------------------------------------------------------------------------------
+//
+// FreeHIDObject( )
+//
+//---------------------------------------------------------------------------------
+bool FreeHIDObject(io_service_t inHIDObject) {
+	kern_return_t kr;
 	
-#if PRAGMA_IMPORT
-#pragma import on
-#endif
+	kr = IOObjectRelease(inHIDObject);
 	
-#if PRAGMA_STRUCT_ALIGN
-#pragma options align=mac68k
-#elif PRAGMA_STRUCT_PACKPUSH
-#pragma pack(push, 2)
-#elif PRAGMA_STRUCT_PACK
-#pragma pack(2)
-#endif
-	
-	//*****************************************************
-#pragma mark - typedef's, struct's, enums, defines, etc.
-	//-----------------------------------------------------
-	
-	//*****************************************************
-#pragma mark - exported globals
-	//-----------------------------------------------------
-	
-	//*****************************************************
-#pragma mark - exported function prototypes
-	//-----------------------------------------------------
-	
-	//*****************************************************
-#if PRAGMA_STRUCT_ALIGN
-#pragma options align=reset
-#elif PRAGMA_STRUCT_PACKPUSH
-#pragma pack(pop)
-#elif PRAGMA_STRUCT_PACK
-#pragma pack()
-#endif
-	
-#ifdef PRAGMA_IMPORT_OFF
-#pragma import off
-#elif PRAGMA_IMPORT
-#pragma import reset
-#endif
-	
-#ifdef __cplusplus
-}
-#endif
-
-#endif  // __IOHIDLib___
+	return (kIOReturnSuccess == kr);
+} // FreeHIDObject
