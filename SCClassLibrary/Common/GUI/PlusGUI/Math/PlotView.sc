@@ -643,13 +643,25 @@ Plotter {
 
 	minval_ { |val|
 		val = val.asArray;
-		specs.do { |x, i| x.minval = val.wrapAt(i) };
+		specs.do { |x, i|
+			var v;
+			v = val.wrapAt(i);
+			if(v.notNil) {
+				x.minval = v
+			}
+		};
 		this.updatePlotSpecs;
 	}
 
 	maxval_ { |val|
 		val = val.asArray;
-		specs.do { |x, i| x.maxval = val.wrapAt(i) };
+		specs.do { |x, i|
+			var v;
+			v = val.wrapAt(i);
+			if(v.notNil) {
+				x.maxval = v
+			}
+		};
 		this.updatePlotSpecs;
 	}
 
