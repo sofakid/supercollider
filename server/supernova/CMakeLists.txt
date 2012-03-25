@@ -1,3 +1,6 @@
+find_package(LLVM)
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LLVM_CFLAGS}")
+
 if (FFT_GREEN)
     add_definitions("-DSC_FFT_GREEN")
 elseif (APPLE)
@@ -6,6 +9,7 @@ else()
     find_package(FFTW3f 3.3)
     if (FFTW3F_FOUND)
         add_definitions("-DSC_FFT_FFTW")
+        include_directories (${FFTW3F_INCLUDE_DIR})
     else()
         message(SEND_ERROR "Cannot find libfftw3f")
     endif()
@@ -149,6 +153,9 @@ else()
 endif()
 
 target_link_libraries(supernova libsupernova)
+
+target_link_libraries(libsupernova ${LLVM_JIT_LIBS})
+set_property(TARGET libsupernova APPEND PROPERTY LINK_FLAGS ${LLVM_LFLAGS})
 
 if(APPLE)
 	# determines the app name and app install location (scappbundlename, scappdir):
