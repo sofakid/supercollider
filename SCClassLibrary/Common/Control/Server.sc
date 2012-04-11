@@ -1064,4 +1064,13 @@ Server {
 			^serverInterface.setControlBusValues(busIndex, valueArray)
 		}
 	}
+
+	// Later: delegate to Platform
+	*supernova {
+		Server.program = Server.program.replace("scsynth", "supernova")
+	}
+
+	*scsynth {
+		Server.program = Server.program.replace("supernova", "scsynth")
+	}
 }
