@@ -222,13 +222,15 @@ if(CURL)
 endif()
 
 set(Boost_USE_MULTITHREADED      ON)
-find_package( Boost 1.48.0 COMPONENTS thread system filesystem program_options regex )
+find_package( Boost 1.48.0 COMPONENTS thread system filesystem program_options regex test )
 
 if (SC_OX)
 	set(Boost_FOUND OFF) # boost 1.48 does not like c++11
 endif()
 
-if (NOT Boost_FOUND)
+if (Boost_FOUND)
+	link_directories(${Boost_LIBRARY_DIRS})
+else()
 	message("building boost libraries manually")
 endif()
 
