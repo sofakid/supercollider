@@ -229,8 +229,15 @@ typedef struct InterfaceTable InterfaceTable;
 #ifdef STATIC_PLUGINS
 	#define PluginLoad(name) void name##_Load(InterfaceTable *inTable)
 #else
+	#ifdef SUPERNOVA
+	#define SUPERNOVA_CHECK C_LINKAGE SC_API_EXPORT int supernova(void) { return 1; }
+	#else
+	#define SUPERNOVA_CHECK C_LINKAGE SC_API_EXPORT int supernova(void) { return 0; }
+	#endif
+
 	#define PluginLoad(name) 														\
-		C_LINKAGE SC_API_EXPORT int api_version(void) { return sc_api_version; }	\
+		C_LINKAGE SC_API_EXPORT int api_version(void) { return sc_api_version; }		\
+		SUPERNOVA_CHECK																\
 		C_LINKAGE SC_API_EXPORT void load(InterfaceTable *inTable)
 #endif
 

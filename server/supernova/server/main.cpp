@@ -44,6 +44,7 @@
 #endif
 
 #include "SC_DirUtils.h"
+#include "SC_StringParser.h"
 
 using namespace nova;
 using namespace std;
@@ -189,19 +190,31 @@ void set_plugin_paths(void)
         foreach(string const & path, args.ugen_paths)
             sc_factory->load_plugin_folder(path);
     } else {
-        path home = resolve_home();
 
 #ifdef __linux__
-        sc_factory->load_plugin_folder("/usr/local/lib/supernova/plugins");
+        sc_factory->load_plugin_folder("/usr/local/lib/SuperCollider/plugins");
         sc_factory->load_plugin_folder("/usr/lib/supernova/plugins");
-        sc_factory->load_plugin_folder(home / "/.local/share/SuperCollider/supernova_plugins");
-        sc_factory->load_plugin_folder(home / "share/SuperCollider/supernova_plugins");
-#elif defined(__APPLE__)
-        sc_factory->load_plugin_folder(home / "Library/Application Support/SuperCollider/supernova_plugins/");
-        sc_factory->load_plugin_folder("/Library/Application Support/SuperCollider/supernova_plugins/");
 #else
-        cerr << "Don't know how to locate plugins on this platform. Please specify search path in command line."
+        char pluginDir[MAXPATHLEN];
+        sc_GetResourceDirectory(pluginDir, MAXPATHLEN);
+        sc_AppendToPath(pluginDir, MAXPATHLEN, "plugins");
+
+        if (sc_DirectoryExists(pluginDir))
+            sc_factory->load_plugin_folder(pluginDir);
 #endif
+
+        char extensionDir[MAXPATHLEN];
+        sc_GetSystemExtensionDirectory(extensionDir, MAXPATHLEN);
+        sc_factory->load_plugin_folder(extensionDir);
+
+        // load user extension plugins
+        sc_GetUserExtensionDirectory(extensionDir, MAXPATHLEN);
+        sc_factory->load_plugin_folder(extensionDir);
+
+        // load user plugin directories
+        SC_StringParser sp(getenv("SC_PLUGIN_PATH"), SC_STRPARSE_PATHDELIMITER);
+        while (!sp.AtEnd())
+            sc_factory->load_plugin_folder(sp.NextToken());
     }
 
 #ifndef NDEBUG

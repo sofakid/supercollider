@@ -235,11 +235,10 @@ void sc_ugen_factory::load_plugin_folder (boost::filesystem::path const & path)
 void sc_ugen_factory::load_plugin ( boost::filesystem::path const & path )
 {
     using namespace std;
+
     void * handle = dlopen(path.string().c_str(), RTLD_NOW | RTLD_LOCAL);
-    if (handle == NULL) {
-        cerr << "Cannot open plugin: " << dlerror() << endl;
+    if (handle == NULL)
         return;
-    }
 
     typedef int (*info_function)();
 
@@ -254,8 +253,16 @@ void sc_ugen_factory::load_plugin ( boost::filesystem::path const & path )
         return;
     }
 
+    info_function supernova_check = reinterpret_cast<info_function>(dlsym(handle, "supernova"));
+    if (!supernova_check || (*supernova_check)() == 0) {
+        // silently ignore
+        dlclose(handle);
+        return;
+    }
+
     void * load_symbol = dlsym(handle, "load");
     if (!load_symbol) {
+        cerr << "Problem when loading plugin: \"load\" function undefined" << path << endl;
         dlclose(handle);
         return;
     }
