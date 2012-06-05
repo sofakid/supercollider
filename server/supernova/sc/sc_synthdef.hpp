@@ -29,8 +29,7 @@
 #include "utilities/malloc_aligned.hpp"
 #include "utilities/named_hash_entry.hpp"
 
-#include "SC_Types.h"
-#include "SC_Wire.h"
+#include "sc.hpp"
 
 namespace nova {
 
@@ -84,7 +83,6 @@ public:
 
         unit_spec_t(unit_spec_t const & rhs) = default;
         unit_spec_t & operator=(unit_spec_t const & rhs) = default;
-
         string name;
         int16_t rate;           /* 0: scalar rate, 1: buffer rate, 2: full rate, 3: demand rate */
         int16_t special_index;

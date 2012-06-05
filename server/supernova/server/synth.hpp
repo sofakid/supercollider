@@ -76,7 +76,7 @@ protected:
     {}
 
 public:
-    virtual void run(void) = 0;
+    virtual void run(int thread_index) = 0;
 
     /** set a slot */
     /* @{ */
