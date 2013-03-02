@@ -29,8 +29,7 @@
 
 #include "SC_DirUtils.h"
 
-#include "yaml-cpp/node.h"
-#include "yaml-cpp/parser.h"
+#include "yaml-cpp/yaml.h"
 
 #include <QAction>
 #include <QApplication>
@@ -306,26 +305,16 @@ void Main::onScLangResponse( const QString & selector, const QString & data )
 
 void Main::handleOpenFileScRequest( const QString & data )
 {
-    std::stringstream stream;
-    stream << data.toStdString();
-    YAML::Parser parser(stream);
+	YAML::Node doc = YAML::Load(data.toStdString());
+	try {
+		if (doc.IsSequence()) {
+			std::string path = doc[0].as<std::string>();
+			int position = doc[1].as<int>();
+			int selectionLength = doc[2].as<int>();
 
-    YAML::Node doc;
-    if (parser.GetNextDocument(doc)) {
-        if (doc.Type() != YAML::NodeType::Sequence)
-            return;
+			mDocManager->open(QString(path.c_str()), position, selectionLength);
+		}
+	} catch (...) {
 
-        std::string path;
-        bool success = doc[0].Read(path);
-        if (!success)
-            return;
-
-        int position = 0;
-        doc[1].Read(position);
-
-        int selectionLength = 0;
-        doc[2].Read(selectionLength);
-
-        mDocManager->open(QString(path.c_str()), position, selectionLength);
-    }
+	}
 }

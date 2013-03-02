@@ -159,38 +159,35 @@ bool SC_LanguageConfig::readLibraryConfigYAML(const char* fileName)
 	using namespace YAML;
 	try {
 		std::ifstream fin(fileName);
-		Parser parser(fin);
 
-		Node doc;
-		while(parser.GetNextDocument(doc)) {
-			const Node * includePaths = doc.FindValue("includePaths");
-			if (includePaths && includePaths->Type() == NodeType::Sequence) {
-				for (Iterator it = includePaths->begin(); it != includePaths->end(); ++it) {
+		Node doc = Load(fin);
+		while(doc) {
+			const Node includePaths = doc["includePaths"];
+			if (includePaths && includePaths.IsSequence()) {
+				for (const_iterator it = includePaths.begin(); it != includePaths.end(); ++it) {
 					Node const & pathNode = *it;
-					if (pathNode.Type() != NodeType::Scalar)
+					if (!pathNode.IsScalar())
 						continue;
-					string path;
-					pathNode.GetScalar(path);
+					string path = pathNode.Scalar();
 					gLanguageConfig->addIncludedDirectory(path.c_str());
 				}
 			}
 
-			const Node * excludePaths = doc.FindValue("excludePaths");
-			if (excludePaths && excludePaths->Type() == NodeType::Sequence) {
-				for (Iterator it = excludePaths->begin(); it != excludePaths->end(); ++it) {
+			const Node excludePaths = doc["excludePaths"];
+			if (excludePaths && excludePaths.IsSequence()) {
+				for (const_iterator it = excludePaths.begin(); it != excludePaths.end(); ++it) {
 					Node const & pathNode = *it;
-					if (pathNode.Type() != NodeType::Scalar)
+					if (!pathNode.IsScalar())
 						continue;
-					string path;
-					pathNode.GetScalar(path);
+					string path = pathNode.Scalar();
 					gLanguageConfig->addExcludedDirectory(path.c_str());
 				}
 			}
 
-			const Node * inlineWarnings = doc.FindValue("postInlineWarnings");
+			const Node inlineWarnings = doc["postInlineWarnings"];
 			if (inlineWarnings) {
 				try {
-					gPostInlineWarnings = inlineWarnings->to<bool>();
+					gPostInlineWarnings = inlineWarnings.as<bool>();
 				} catch(...) {
 					postfl("Warning: Cannot parse config file entry \"postInlineWarnings\"\n");
 				}

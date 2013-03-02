@@ -29,8 +29,7 @@
 #include "scsynthsend.h"
 #include "sc_msg_iter.h"
 
-#include "yaml-cpp/node.h"
-#include "yaml-cpp/parser.h"
+#include "yaml-cpp/yaml.h"
 
 #include <sstream>
 #include <iomanip>
@@ -395,27 +394,23 @@ void ScServer::onScLangReponse( const QString & selector, const QString & data )
 
 void ScServer::handleRuningStateChangedMsg( const QString & data )
 {
-    std::stringstream stream;
-    stream << data.toStdString();
-    YAML::Parser parser(stream);
+	YAML::Node doc = YAML::Load(data.toStdString());
+	if (!doc.IsSequence())
+		return;
 
-    bool serverRunningState;
+	bool serverRunningState;
     std::string hostName;
     int port;
 
-    YAML::Node doc;
-    while(parser.GetNextDocument(doc)) {
-        assert(doc.Type() == YAML::NodeType::Sequence);
+	try {
+		serverRunningState = doc[0].as<bool>();
+		hostName           = doc[1].as<std::string>();
+		port               = doc[2].as<int>();
 
-        bool success = doc[0].Read(serverRunningState);
-        if (!success) return; // LATER: report error?
-
-        success = doc[1].Read(hostName);
-        if (!success) return; // LATER: report error?
-
-        success = doc[2].Read(port);
-        if (!success) return; // LATER: report error?
-    }
+	} catch (...) {
+		// LATER: report error?
+		return;
+	}
 
     QString qstrHostName( hostName.c_str() );
 

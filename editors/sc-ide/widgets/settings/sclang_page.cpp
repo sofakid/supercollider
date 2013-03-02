@@ -129,39 +129,34 @@ void SclangPage::readLanguageConfig()
 
     using namespace YAML;
     try {
-        std::ifstream fin(configFile.toStdString().c_str());
-        Parser parser(fin);
-
-        Node doc;
-        while(parser.GetNextDocument(doc)) {
-            const Node * includePaths = doc.FindValue("includePaths");
-            if (includePaths && includePaths->Type() == NodeType::Sequence) {
-                for (Iterator it = includePaths->begin(); it != includePaths->end(); ++it) {
+        Node doc = Load(configFile.toStdString());
+        while(doc) {
+            const Node includePaths = doc["includePaths"];
+            if (includePaths && includePaths.IsSequence()) {
+                for (const_iterator it = includePaths.begin(); it != includePaths.end(); ++it) {
                     Node const & pathNode = *it;
-                    if (pathNode.Type() != NodeType::Scalar)
+                    if (!pathNode.IsScalar())
                         continue;
-                    std::string path;
-                    pathNode.GetScalar(path);
+                    std::string path = pathNode.Scalar();
                     ui->sclang_include_directories->addItem(QString(path.c_str()));
                 }
             }
 
-            const Node * excludePaths = doc.FindValue("excludePaths");
-            if (excludePaths && excludePaths->Type() == NodeType::Sequence) {
-                for (Iterator it = excludePaths->begin(); it != excludePaths->end(); ++it) {
+            const Node excludePaths = doc["excludePaths"];
+            if (excludePaths && excludePaths.IsSequence()) {
+                for (const_iterator it = excludePaths.begin(); it != excludePaths.end(); ++it) {
                     Node const & pathNode = *it;
-                    if (pathNode.Type() != NodeType::Scalar)
+                    if (!pathNode.IsScalar())
                         continue;
-                    std::string path;
-                    pathNode.GetScalar(path);
+                    std::string path = pathNode.Scalar();
                     ui->sclang_exclude_directories->addItem(QString(path.c_str()));
                 }
             }
 
-            const Node * inlineWarnings = doc.FindValue("postInlineWarnings");
+            const Node inlineWarnings = doc["postInlineWarnings"];
             if (inlineWarnings) {
                 try {
-                    bool postInlineWarnings = inlineWarnings->to<bool>();
+                    bool postInlineWarnings = inlineWarnings.as<bool>();
                     ui->sclang_post_inline_warnings->setChecked(postInlineWarnings);
                 } catch(...) {
                     qDebug() << "Warning: Cannot parse config file entry \"postInlineWarnings\"";

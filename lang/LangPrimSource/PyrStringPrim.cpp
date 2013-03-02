@@ -878,70 +878,71 @@ int prString_EscapeChar(struct VMGlobals* g, int numArgsPushed)
 	return errNone;
 }
 
-static void yaml_traverse(struct VMGlobals* g, const YAML::Node & node, PyrObject *parent, PyrSlot *slot) {
+static void yaml_traverse(struct VMGlobals* g, const YAML::Node & node, PyrObject *parent, PyrSlot *slot)
+{
 	YAML::NodeType::value type = node.Type();
-	string out;
 	PyrObject *result = NULL;
 
-	switch (type)
+	switch (type) {
+	case YAML::NodeType::Scalar:
 	{
-		case YAML::NodeType::Scalar:
-			node >> out;
-			result = (PyrObject*)newPyrString(g->gc, out.c_str(), 0, true);
-			SetObject(slot, result);
-			if(parent) g->gc->GCWrite(parent, result);
-			break;
+		string out = node.Scalar();
+		result = (PyrObject*)newPyrString(g->gc, out.c_str(), 0, true);
+		SetObject(slot, result);
+		if(parent) g->gc->GCWrite(parent, result);
+		break;
+	}
 
-		case YAML::NodeType::Sequence:
-			result = newPyrArray(g->gc, node.size(), 0, true);
-			result->size = 0;
-			SetObject(slot, result);
-			if(parent) g->gc->GCWrite(parent, result);
-			for (unsigned int i = 0; i < node.size(); i++) {
-				const YAML::Node & subnode = node[i];
-				result->size++;
-				yaml_traverse(g, subnode, result, result->slots+i);
-			}
-			break;
-
-		case YAML::NodeType::Map:
-		{
-			result = instantiateObject( g->gc, s_dictionary->u.classobj, 0, false, true );
-			SetObject(slot, result);
-			if(parent) g->gc->GCWrite(parent, result);
-
-			PyrObject *array = newPyrArray(g->gc, node.size()*2, 0, true);
-			array->size = 0;
-			result->size = 2; // ?
-			SetObject(result->slots, array);      // array
-			SetInt(result->slots+1, node.size()); // size
-			g->gc->GCWrite(result, array);
-
-			int j = 0;
-			for (YAML::Iterator i = node.begin(); i != node.end(); ++i) {
-				const YAML::Node & key   = i.first();
-				const YAML::Node & value = i.second();
-				key >> out;
-				PyrObject *pkey = (PyrObject*)newPyrString(g->gc, out.c_str(), 0, true);
-				SetObject(array->slots+j, pkey);
-				array->size++;
-				g->gc->GCWrite(array, pkey);
-
-				array->size++;
-				yaml_traverse(g, value, array, array->slots+j+1);
-
-				j += 2;
-			}
-			break;
+	case YAML::NodeType::Sequence:
+		result = newPyrArray(g->gc, node.size(), 0, true);
+		result->size = 0;
+		SetObject(slot, result);
+		if(parent) g->gc->GCWrite(parent, result);
+		for (unsigned int i = 0; i < node.size(); i++) {
+			const YAML::Node & subnode = node[i];
+			result->size++;
+			yaml_traverse(g, subnode, result, result->slots+i);
 		}
+		break;
 
-		case YAML::NodeType::Null:
-			SetNil(slot);
-			break;
+	case YAML::NodeType::Map:
+	{
+		result = instantiateObject( g->gc, s_dictionary->u.classobj, 0, false, true );
+		SetObject(slot, result);
+		if(parent) g->gc->GCWrite(parent, result);
 
-		default:
-			postfl("WARNING: yaml_traverse(): unknown/unsupported node type\n");
-			SetNil(slot);
+		PyrObject *array = newPyrArray(g->gc, node.size()*2, 0, true);
+		array->size = 0;
+		result->size = 2; // ?
+		SetObject(result->slots, array);      // array
+		SetInt(result->slots+1, node.size()); // size
+		g->gc->GCWrite(result, array);
+
+		int j = 0;
+		for (YAML::Node::const_iterator iterator = node.begin(); iterator != node.end(); ++iterator) {
+			const YAML::Node & key   = iterator->first;
+			const YAML::Node & value = iterator->second;
+			string out = key.Scalar();
+			PyrObject *pkey = (PyrObject*)newPyrString(g->gc, out.c_str(), 0, true);
+			SetObject(array->slots+j, pkey);
+			array->size++;
+			g->gc->GCWrite(array, pkey);
+
+			array->size++;
+			yaml_traverse(g, value, array, array->slots+j+1);
+
+			j += 2;
+		}
+		break;
+	}
+
+	case YAML::NodeType::Null:
+		SetNil(slot);
+		break;
+
+	default:
+		postfl("WARNING: yaml_traverse(): unknown/unsupported node type\n");
+		SetNil(slot);
 	}
 }
 
@@ -951,15 +952,9 @@ int prString_ParseYAML(struct VMGlobals* g, int numArgsPushed)
 
 	if (!isKindOfSlot(arg, class_string)) return errWrongType;
 
-	string str((const char*)slotRawString(arg)->s,slotRawString(arg)->size);
+	string str((const char*)slotRawString(arg)->s, slotRawString(arg)->size);
 
-	std::istringstream fin(str);
-	YAML::Parser parser(fin);
-	YAML::Node doc;
-//	while(parser.GetNextDocument(doc)) {
-//		yaml_traverse(doc, 0);
-//	}
-	parser.GetNextDocument(doc);
+	YAML::Node doc = YAML::Load(str);
 	yaml_traverse(g, doc, NULL, arg);
 
 	return errNone;
@@ -973,19 +968,12 @@ int prString_ParseYAMLFile(struct VMGlobals* g, int numArgsPushed)
 
 	string str((const char*)slotRawString(arg)->s,slotRawString(arg)->size);
 
-	std::ifstream fin(str.c_str());
-	YAML::Parser parser(fin);
-	YAML::Node doc;
-//	while(parser.GetNextDocument(doc)) {
-//		yaml_traverse(doc, 0);
-//	}
-	parser.GetNextDocument(doc);
+	YAML::Node doc = YAML::Load(str);
 	yaml_traverse(g, doc, NULL, arg);
 
 	return errNone;
 }
 
-void initStringPrimitives();
 void initStringPrimitives()
 {
 	int base, index = 0;

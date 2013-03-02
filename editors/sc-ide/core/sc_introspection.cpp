@@ -23,8 +23,7 @@
 #include "../common/SC_DirUtils.h"
 #include "../widgets/main_window.hpp"
 
-#include "yaml-cpp/node.h"
-#include "yaml-cpp/parser.h"
+#include "yaml-cpp/yaml.h"
 
 #include <cassert>
 
@@ -80,30 +79,26 @@ bool Introspection::parse(const QString & yamlString )
 
     //qDebug("parsing introspection...");
 
-    std::stringstream stream;
-    stream << yamlString.toStdString();
-    YAML::Parser parser(stream);
-
-    YAML::Node doc;
-    if(!parser.GetNextDocument(doc)) {
+    YAML::Node doc = YAML::Load(yamlString.toStdString());
+    if(!doc) {
         MainWindow::instance()->showStatusMessage("no YAML document");
         return false;
     }
 
     assert (doc.Type() == YAML::NodeType::Sequence);
-    for (YAML::Iterator it = doc.begin(); it != doc.end(); ++it)
+    for (YAML::const_iterator it = doc.begin(); it != doc.end(); ++it)
     {
         assert(it->Type() == YAML::NodeType::Sequence);
-        QString name = (*it)[0].to<std::string>().c_str();
+        QString name = (*it)[0].as<std::string>().c_str();
         Class *klass = new Class;
         klass->name = name;
         mClassMap.insert(make_pair(klass->name, QSharedPointer<Class>(klass)));
     }
 
-    for (YAML::Iterator docIterator = doc.begin(); docIterator != doc.end(); ++docIterator)
+    for (YAML::const_iterator docIterator = doc.begin(); docIterator != doc.end(); ++docIterator)
     {
         const YAML::Node & node = *docIterator;
-        QString name = node[0].to<std::string>().c_str();
+        QString name = node[0].as<std::string>().c_str();
         ClassMap::iterator it = mClassMap.find(name);
         assert(it != mClassMap.end());
         Class *klass = it->second.data();
@@ -112,29 +107,29 @@ bool Introspection::parse(const QString & yamlString )
 
         ClassMap::iterator class_it;
 
-        QString metaClassName = node[1].to<std::string>().c_str();
+        QString metaClassName = node[1].as<std::string>().c_str();
         class_it = mClassMap.find(metaClassName);
         assert(class_it != mClassMap.end());
         klass->metaClass = class_it->second.data();
 
-        if (node[2].Read(YAML::Null))
+        if (node[2].IsNull())
             klass->superClass = 0;
         else {
-            QString superClassName = node[2].to<std::string>().c_str();
+            QString superClassName = node[2].as<std::string>().c_str();
             class_it = mClassMap.find(superClassName);
             assert(class_it != mClassMap.end());
             klass->superClass = class_it->second.data();
         }
 
-        klass->definition.path = node[3].to<std::string>().c_str();
-        klass->definition.position = node[4].to<int>();
+        klass->definition.path = node[3].as<std::string>().c_str();
+        klass->definition.position = node[4].as<int>();
 
         const YAML::Node &methodSeq = node[5];
         if (methodSeq.Type() != YAML::NodeType::Sequence)
             continue;
 
         //assert(methodSeq.Type() == YAML::NodeType::Sequence);
-        for (YAML::Iterator mit = methodSeq.begin(); mit != methodSeq.end(); ++mit)
+        for (YAML::const_iterator mit = methodSeq.begin(); mit != methodSeq.end(); ++mit)
         {
             const YAML::Node &methodNode = *mit;
             assert(methodNode.Type() == YAML::NodeType::Sequence);
@@ -145,22 +140,22 @@ bool Introspection::parse(const QString & yamlString )
 
             Method *method = new Method;
             method->ownerClass = klass;
-            method->name = methodNode[1].to<std::string>().c_str();
-            method->definition.path = methodNode[2].to<std::string>().c_str();
-            method->definition.position = methodNode[3].to<int>();
+            method->name = methodNode[1].as<std::string>().c_str();
+            method->definition.path = methodNode[2].as<std::string>().c_str();
+            method->definition.position = methodNode[3].as<int>();
 
             //qDebug() << "--" << method->name;
 
             const YAML::Node &argNode = methodNode[4];
             assert(argNode.Type() == YAML::NodeType::Sequence);
-            YAML::Iterator arg = argNode.begin();
+            YAML::const_iterator arg = argNode.begin();
             while (arg != argNode.end())
             {
                 Argument argument;
 
                 // get arg name
                 assert(arg->Type() == YAML::NodeType::Scalar);
-                argument.name = arg->to<std::string>().c_str();
+                argument.name = arg->as<std::string>().c_str();
 
                 //qDebug() << "---# " << argument.name;
 
@@ -168,9 +163,9 @@ bool Introspection::parse(const QString & yamlString )
                 ++arg;
                 if (arg == argNode.end())
                     break;
-                if(!arg->Read(YAML::Null)) {
+                if(!arg->IsNull()) {
                     assert(arg->Type() == YAML::NodeType::Scalar);
-                    argument.defaultValue = arg->to<std::string>().c_str();
+                    argument.defaultValue = arg->as<std::string>().c_str();
                 }
 
                 method->arguments.append(argument);
