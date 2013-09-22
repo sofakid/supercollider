@@ -316,7 +316,7 @@ NodeProxy : BusPlug {
 		this.xFadePerform(\map, args)
 	}
 	xsetn { | ... args |
-		this.xFadePerform(\setn, args.asControlInput)
+		this.xFadePerform(\set, args.asControlInput)
 	}
 	xmapn { | ... args |
 		"NodeProxy: xmapn is decrepated, please use xmap instead".postln;
