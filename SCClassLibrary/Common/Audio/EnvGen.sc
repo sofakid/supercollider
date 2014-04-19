@@ -63,13 +63,20 @@ EnvGen : UGen { // envelope generator
 		^env.asMultichannelArray.collect(_.reference).unbubble
 	}
 	*new1 { arg rate, gate, levelScale, levelBias, timeScale, doneAction, envArray;
+		// protect envelope from being locked when setting gate to 0 in the first cycle
+		if(gate.isKindOf(OutputProxy)
+			and: { gate.source.isKindOf(Control) }
+			and: { gate.source.values.at(gate.outputIndex) == 1.0 }
+		) {
+			gate = gate + Impulse.perform(UGen.methodSelectorForRate(rate), 0)
+		};
 		^super.new.rate_(rate).addToSynth.init([gate, levelScale, levelBias, timeScale, doneAction]
 			++ envArray.dereference);
 	}
- 	init { arg theInputs;
- 		// store the inputs as an array
- 		inputs = theInputs;
- 	}
+	init { arg theInputs;
+		// store the inputs as an array
+		inputs = theInputs;
+	}
 	argNamesInputsOffset { ^2 }
 }
 
